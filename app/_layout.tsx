@@ -12,7 +12,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "~mobile/hooks/useColorScheme";
 
-import "~mobile/styles/globals.css";
+import "../global.css";
 import { Text } from "react-native";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -25,15 +25,17 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    console.log("loaded", loaded);
     if (loaded) {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
+  if (!loaded) {
+    return null;
+  }
+
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Text className="text-red-500 font-bold text-xl">Hello tailwind</Text>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
