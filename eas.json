@@ -1,20 +1,12 @@
 {
   "build": {
     "development": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": true,
-        "image": "latest"
-      }
+      "developmentClient": true,
+      "distribution": "internal"
     },
-    "production": {
-      "distribution": "store",
-      "android": {
-        "buildType": "app-bundle"
-      }
-    }
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {}
   }
 }

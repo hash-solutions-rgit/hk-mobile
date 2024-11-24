@@ -1,9 +1,8 @@
 import { Button, SafeAreaView, Text } from "react-native";
 import { BleManager } from "react-native-ble-plx";
 
+const bleManager = new BleManager();
 function Home() {
-  const bleManager = new BleManager();
-
   const scanForDevices = () => {
     bleManager.startDeviceScan(null, null, (error, device) => {
       if (error) {
