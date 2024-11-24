@@ -1,39 +1,63 @@
-import { Button, Text } from "react-native";
-import { BleManager } from "react-native-ble-plx";
+import { useState } from "react";
+import { Button, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DeviceModal from "~mobile/components/DeviceConnectionModal";
+import useBLE from "~mobile/hooks/useBLE";
 
-const bleManager = new BleManager();
 function Home() {
-  const scanForDevices = () => {
-    bleManager.startDeviceScan(null, null, (error, device) => {
-      if (error) {
-        console.error(error);
-        return;
-      }
-      console.log("Device found:", device?.name, device?.id);
-      // Optionally, stop scanning if you find your target device
-      if (device?.name === "MyDevice") {
-        bleManager.stopDeviceScan();
-        connectToDevice(device.id);
-      }
-    });
+  const {
+    requestPermissions,
+    scanForPeripherals,
+    allDevices,
+    connectToDevice,
+    connectedDevice,
+    heartRate,
+    disconnectFromDevice,
+  } = useBLE();
+
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+
+  const scanForDevices = async () => {
+    const isPermissionsEnabled = await requestPermissions();
+    if (isPermissionsEnabled) {
+      scanForPeripherals();
+    }
   };
 
-  const connectToDevice = async (deviceId: string) => {
-    try {
-      const device = await bleManager.connectToDevice(deviceId);
-      console.log("Connected to device:", device.name);
-      await device.discoverAllServicesAndCharacteristics();
-      // Save device for future interactions
-    } catch (error) {
-      console.error("Connection error:", error);
-    }
+  const hideModal = () => {
+    setIsModalVisible(false);
+  };
+
+  const openModal = async () => {
+    scanForDevices();
+    setIsModalVisible(true);
   };
 
   return (
     <SafeAreaView className="bg-gray-50">
       <Text>Hello world</Text>
       <Button title="Scan for devices" onPress={scanForDevices} />
+      {connectedDevice ? (
+        <>
+          <Text>Your Heart Rate Is:</Text>
+          <Text>{heartRate} bpm</Text>
+        </>
+      ) : (
+        <Text>Please Connect to a Heart Rate Monitor</Text>
+      )}
+
+      <TouchableOpacity
+        onPress={connectedDevice ? disconnectFromDevice : openModal}
+      >
+        <Text>{connectedDevice ? "Disconnect" : "Connect"}</Text>
+      </TouchableOpacity>
+
+      <DeviceModal
+        closeModal={hideModal}
+        visible={isModalVisible}
+        connectToPeripheral={connectToDevice}
+        devices={allDevices}
+      />
     </SafeAreaView>
   );
 }
