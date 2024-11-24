@@ -1,5 +1,6 @@
-import { Button, SafeAreaView, Text } from "react-native";
+import { Button, Text } from "react-native";
 import { BleManager } from "react-native-ble-plx";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const bleManager = new BleManager();
 function Home() {
@@ -32,7 +33,6 @@ function Home() {
   return (
     <SafeAreaView className="bg-gray-50">
       <Text>Hello world</Text>
-
       <Button title="Scan for devices" onPress={scanForDevices} />
     </SafeAreaView>
   );
