@@ -65,6 +65,9 @@ const DeviceModal: FC<DeviceModalProps> = (props) => {
       visible={visible}
     >
       <SafeAreaView style={modalStyle.modalTitle}>
+        <TouchableOpacity onPress={closeModal}>
+          <Text>close</Text>
+        </TouchableOpacity>
         <Text style={modalStyle.modalTitleText}>
           Tap on a device to connect
         </Text>

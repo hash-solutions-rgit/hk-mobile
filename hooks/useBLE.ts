@@ -1,6 +1,6 @@
 /* eslint-disable no-bitwise */
 import { useMemo, useState } from "react";
-import { PermissionsAndroid, Platform } from "react-native";
+import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
 import {
   BleError,
   BleManager,
@@ -23,6 +23,7 @@ interface BluetoothLowEnergyApi {
   connectedDevice: Device | null;
   allDevices: Device[];
   heartRate: number;
+  checkBluetooth: () => void;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
@@ -31,19 +32,61 @@ function useBLE(): BluetoothLowEnergyApi {
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [heartRate, setHeartRate] = useState<number>(0);
 
+  const promptToEnableBluetooth = () => {
+    Alert.alert(
+      "Enable Bluetooth",
+      "Bluetooth is required to connect to devices. Please turn it on.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Open Settings",
+          onPress: () => {
+            if (Platform.OS === "ios") {
+              // Open iOS settings
+              Linking.openURL("App-Prefs:Bluetooth");
+            } else {
+              // Open Android settings
+              bleManager.enable(); // Tries to enable Bluetooth on Android
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const checkBluetooth = async () => {
+    // For iOS, request permissions explicitly
+    if (Platform.OS === "ios") {
+      await bleManager.enable();
+    }
+
+    // Listen for Bluetooth state changes
+    const subscription = bleManager.onStateChange((state) => {
+      if (state === "PoweredOn") {
+        console.log("Bluetooth is enabled");
+      } else {
+        promptToEnableBluetooth();
+      }
+    }, true);
+
+    // Cleanup the subscription on unmount
+    return () => subscription.remove();
+  };
+
   const requestAndroid31Permissions = async () => {
     const bluetoothScanPermission = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
       {
-        title: "Location Permission",
+        title: "Bluetooth Permission",
         message: "Bluetooth Low Energy requires Location",
         buttonPositive: "OK",
       }
     );
+
     const bluetoothConnectPermission = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
       {
-        title: "Location Permission",
+        title: "Bluetooth Permission",
         message: "Bluetooth Low Energy requires Location",
         buttonPositive: "OK",
       }
@@ -174,6 +217,7 @@ function useBLE(): BluetoothLowEnergyApi {
     connectedDevice,
     disconnectFromDevice,
     heartRate,
+    checkBluetooth,
   };
 }
 

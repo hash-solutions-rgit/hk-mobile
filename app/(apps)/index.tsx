@@ -13,6 +13,7 @@ function Home() {
     connectedDevice,
     heartRate,
     disconnectFromDevice,
+    checkBluetooth,
   } = useBLE();
 
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -20,6 +21,7 @@ function Home() {
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
     if (isPermissionsEnabled) {
+      checkBluetooth();
       scanForPeripherals();
     }
   };
@@ -35,7 +37,6 @@ function Home() {
 
   return (
     <SafeAreaView className="bg-gray-50">
-      <Text>Hello world</Text>
       <Button title="Scan for devices" onPress={scanForDevices} />
       {connectedDevice ? (
         <>
