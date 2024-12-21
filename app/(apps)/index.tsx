@@ -35,6 +35,8 @@ function Home() {
     setIsModalVisible(true);
   };
 
+
+
   return (
     <SafeAreaView className="bg-gray-50">
       <Button title="Scan for devices" onPress={scanForDevices} />
@@ -52,6 +54,8 @@ function Home() {
       >
         <Text>{connectedDevice ? "Disconnect" : "Connect"}</Text>
       </TouchableOpacity>
+
+    
 
       <DeviceModal
         closeModal={hideModal}

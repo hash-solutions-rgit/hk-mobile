@@ -12,6 +12,8 @@ import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
 
+import { atob } from "react-native-quick-base64";
+
 const HEART_RATE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
 const HEART_RATE_CHARACTERISTIC = "00002a37-0000-1000-8000-00805f9b34fb";
 
@@ -24,6 +26,7 @@ interface BluetoothLowEnergyApi {
   allDevices: Device[];
   heartRate: number;
   checkBluetooth: () => void;
+  bleManager: BleManager;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
@@ -138,7 +141,6 @@ function useBLE(): BluetoothLowEnergyApi {
       if (error) {
         console.log(error);
       }
-      console.log(device);
 
       if (!device) return;
       setAllDevices((prevState: Device[]) => {
@@ -149,13 +151,109 @@ function useBLE(): BluetoothLowEnergyApi {
       });
     });
 
+  const discoverServicesAndCharacteristics = async (device: Device) => {
+    try {
+      const services = await device.services();
+      for (const service of services) {
+        console.log(`Service UUID: ${service.uuid}`);
+        const characteristics = await service.characteristics();
+        for (const characteristic of characteristics) {
+          console.log(`Characteristic UUID: ${characteristic.uuid}`);
+        }
+      }
+    } catch (error) {
+      console.error("Discovery error:", error);
+    }
+  };
+
+  const readCharacteristic = async (
+    device: Device,
+    serviceUUID: string,
+    characteristicUUID: string
+  ) => {
+    try {
+      const characteristic = await device.readCharacteristicForService(
+        serviceUUID,
+        characteristicUUID
+      );
+      console.log("Characteristic Value:", characteristic.value); // Decoded value (Base64 encoded)
+      console.log(base64.decode(characteristic.value ?? ""));
+    } catch (error) {
+      console.error("Read Error:", error);
+    }
+  };
+
+  // const interactWithCustomCharacteristic = async (device: Device) => {
+  //   try {
+  //     // Example: Reading characteristic
+  //     const characteristic = await device.wri(
+  //       "0000fff0-0000-1000-8000-00805f9b34fb",
+  //       "0000fff6-0000-1000-8000-00805f9b34fb"
+  //     );
+  //     console.log("Custom Characteristic Value:", characteristic.value);
+  //   } catch (error) {
+  //     console.error("Error interacting with custom characteristic:", error);
+  //   }
+  // };
+
   const connectToDevice = async (device: Device) => {
     try {
       const deviceConnection = await bleManager.connectToDevice(device.id);
       setConnectedDevice(deviceConnection);
       await deviceConnection.discoverAllServicesAndCharacteristics();
       bleManager.stopDeviceScan();
-      startStreamingData(deviceConnection);
+      await discoverServicesAndCharacteristics(device);
+      // readCharacteristic(
+      //   device,
+      //   "00001800-0000-1000-8000-00805f9b34fb",
+      //   "00002a00-0000-1000-8000-00805f9b34fb"
+      // );
+      // readCharacteristic(
+      //   device,
+      //   "00001800-0000-1000-8000-00805f9b34fb",
+      //   "00002a01-0000-1000-8000-00805f9b34fb"
+      // );
+      // readCharacteristic(
+      //   device,
+      //   "00001800-0000-1000-8000-00805f9b34fb",
+      //   "00002a02-0000-1000-8000-00805f9b34fb"
+      // );  error
+
+      // data
+      // await interactWithCustomCharacteristic(device);
+      // send data to this
+      // readCharacteristic(
+      //   device,
+      //   "0000fff0-0000-1000-8000-00805f9b34fb",
+      //   "0000fff0-0000-1000-8000-00805f9b34fb",
+      // );
+
+      const hexData = "8f383838384f4b3031";
+
+      const parsseData = (hexData: string) => {
+        const byteArray = hexData
+          ?.match(/.{1,2}/g)
+          ?.map((byte) => parseInt(byte, 16));
+
+        // Convert byte array to Base64
+        const base64Data = base64.encode(String.fromCharCode(...byteArray!));
+
+        return base64Data;
+      };
+
+      const s = await device.writeCharacteristicWithResponseForService(
+        "0000fff0-0000-1000-8000-00805f9b34fb",
+        "0000fff6-0000-1000-8000-00805f9b34fb",
+        parsseData(hexData)
+      );
+
+      console.log("Servive Password", JSON.stringify(s));
+
+      const ss = await device.writeCharacteristicWithResponseForService(
+        "0000fff0-0000-1000-8000-00805f9b34fb",
+        "0000fff6-0000-1000-8000-00805f9b34fb",
+        parsseData("2A0102010101030000173b3E0007000A0064")
+      );
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
@@ -218,6 +316,7 @@ function useBLE(): BluetoothLowEnergyApi {
     disconnectFromDevice,
     heartRate,
     checkBluetooth,
+    bleManager,
   };
 }
 
