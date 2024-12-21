@@ -12,8 +12,8 @@ import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
 
-const HEART_RATE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
-const HEART_RATE_CHARACTERISTIC = "00002a37-0000-1000-8000-00805f9b34fb";
+const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
@@ -164,19 +164,6 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  // const interactWithCustomCharacteristic = async (device: Device) => {
-  //   try {
-  //     // Example: Reading characteristic
-  //     const characteristic = await device.wri(
-  //       "0000fff0-0000-1000-8000-00805f9b34fb",
-  //       "0000fff6-0000-1000-8000-00805f9b34fb"
-  //     );
-  //     console.log("Custom Characteristic Value:", characteristic.value);
-  //   } catch (error) {
-  //     console.error("Error interacting with custom characteristic:", error);
-  //   }
-  // };
-
   const connectToDevice = async (device: Device) => {
     try {
       const deviceConnection = await bleManager.connectToDevice(device.id);
@@ -184,30 +171,6 @@ function useBLE(): BluetoothLowEnergyApi {
       await deviceConnection.discoverAllServicesAndCharacteristics();
       bleManager.stopDeviceScan();
       await discoverServicesAndCharacteristics(device);
-      // readCharacteristic(
-      //   device,
-      //   "00001800-0000-1000-8000-00805f9b34fb",
-      //   "00002a00-0000-1000-8000-00805f9b34fb"
-      // );
-      // readCharacteristic(
-      //   device,
-      //   "00001800-0000-1000-8000-00805f9b34fb",
-      //   "00002a01-0000-1000-8000-00805f9b34fb"
-      // );
-      // readCharacteristic(
-      //   device,
-      //   "00001800-0000-1000-8000-00805f9b34fb",
-      //   "00002a02-0000-1000-8000-00805f9b34fb"
-      // );  error
-
-      // data
-      // await interactWithCustomCharacteristic(device);
-      // send data to this
-      // readCharacteristic(
-      //   device,
-      //   "0000fff0-0000-1000-8000-00805f9b34fb",
-      //   "0000fff0-0000-1000-8000-00805f9b34fb",
-      // );
 
       const hexData = "8f383838384f4b3031";
 
@@ -229,12 +192,6 @@ function useBLE(): BluetoothLowEnergyApi {
       );
 
       console.log("Servive Password", JSON.stringify(s));
-
-      const ss = await device.writeCharacteristicWithResponseForService(
-        "0000fff0-0000-1000-8000-00805f9b34fb",
-        "0000fff6-0000-1000-8000-00805f9b34fb",
-        parsseData("2A0102010101030000173b3E0007000A0064")
-      );
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
@@ -279,8 +236,8 @@ function useBLE(): BluetoothLowEnergyApi {
   const startStreamingData = async (device: Device) => {
     if (device) {
       device.monitorCharacteristicForService(
-        HEART_RATE_UUID,
-        HEART_RATE_CHARACTERISTIC,
+        DEVICE_SERVICE_UUID,
+        DEVICE_CHARACTERISTIC_UUID,
         onHeartRateUpdate
       );
     } else {
