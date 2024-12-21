@@ -12,8 +12,6 @@ import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
 
-import { atob } from "react-native-quick-base64";
-
 const HEART_RATE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
 const HEART_RATE_CHARACTERISTIC = "00002a37-0000-1000-8000-00805f9b34fb";
 
@@ -163,23 +161,6 @@ function useBLE(): BluetoothLowEnergyApi {
       }
     } catch (error) {
       console.error("Discovery error:", error);
-    }
-  };
-
-  const readCharacteristic = async (
-    device: Device,
-    serviceUUID: string,
-    characteristicUUID: string
-  ) => {
-    try {
-      const characteristic = await device.readCharacteristicForService(
-        serviceUUID,
-        characteristicUUID
-      );
-      console.log("Characteristic Value:", characteristic.value); // Decoded value (Base64 encoded)
-      console.log(base64.decode(characteristic.value ?? ""));
-    } catch (error) {
-      console.error("Read Error:", error);
     }
   };
 
