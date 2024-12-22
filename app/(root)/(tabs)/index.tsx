@@ -25,7 +25,7 @@ export default function Home() {
       <WelcomeBanner />
       <ShopNowBanner />
       <AddRoom />
-      <AddDevice />
+      {/* <AddDevice /> */}
     </View>
   );
 }

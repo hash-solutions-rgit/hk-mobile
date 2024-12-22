@@ -61,7 +61,7 @@ export default function RootLayout() {
   return (
     <>
       <Stack>
-        <Stack.Screen name="(root)/(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="(root)/(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(root)/shop-now" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
