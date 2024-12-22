@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { SafeAreaView, View } from "react-native";
 import React from "react";
 import { WebView } from "react-native-webview";
 import { buttonVariants } from "~/components/ui/button";
@@ -8,7 +8,7 @@ import { cn } from "~/lib/utils";
 
 const ShopNow = () => {
   return (
-    <View className="flex-1">
+    <SafeAreaView className="flex-1">
       <WebView source={{ uri: "https://hauskorper.co.uk/" }} />
 
       <View className="p-4 bg-white">
@@ -22,7 +22,7 @@ const ShopNow = () => {
           <Text className="text-white text-center">Go Back to Home</Text>
         </Link>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
