@@ -40,7 +40,7 @@ const ScanDevices = () => {
         <View className="gap-2 flex-col">
           <Text className="text-white">Devices</Text>
           {Array.from(allDevices.values()).map((device) => (
-            <Button>
+            <Button key={device.id}>
               <Text className="text-white">{device.name}</Text>
             </Button>
           ))}
