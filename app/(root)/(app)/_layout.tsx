@@ -1,11 +1,11 @@
 import { Slot } from "expo-router";
-import { View, ScrollView } from "react-native";
+import { SafeAreaView, View } from "react-native";
 import { Button } from "~/components/ui/button";
 import { Menu } from "~/lib/icons/menu";
 
 function Layout() {
   return (
-    <View className="flex flex-col gap-y-2 flex-1">
+    <SafeAreaView className="flex flex-col gap-y-2 flex-1">
       <View className="flex flex-row justify-between px-3 py-2 shrink-0">
         <Button
           variant="ghost"
@@ -16,7 +16,7 @@ function Layout() {
         </Button>
       </View>
       <Slot />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -13,8 +13,7 @@ const ShopNow = () => {
 
       <View className="p-4 bg-white">
         <Link
-          // @ts-ignore
-          href="/(root)/(app)/"
+          href="/"
           className={cn(
             buttonVariants(),
             "flex flex-row items-center gap-2 justify-center"
