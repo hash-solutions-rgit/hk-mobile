@@ -42,6 +42,21 @@ function Layout() {
           }}
         />
         <Tabs.Screen
+          name="device"
+          options={{
+            title: "Device",
+
+            tabBarIcon: ({ focused }) => (
+              <ShoppingBag
+                className={cn(
+                  "w-10 h-10",
+                  focused ? "text-white" : "text-black"
+                )}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="shop"
           options={{
             title: "Shop Now",

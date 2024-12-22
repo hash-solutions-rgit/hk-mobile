@@ -1,9 +1,5 @@
 import { LayoutChangeEvent, View } from "react-native";
-import { useLinkBuilder, useTheme } from "@react-navigation/native";
-import { Text, PlatformPressable } from "@react-navigation/elements";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-
-import Render from "../render";
 import TabBarButton from "./button";
 import { useState } from "react";
 import Animated, {
@@ -44,7 +40,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <View
-      className="absolute bottom-12 flex-row justify-between items-center bg-white mx-20 py-4 rounded-full shadow-md border border-gray-200"
+      className="absolute bottom-8 flex-row justify-between items-center bg-white mx-20 py-4 rounded-full shadow-md border border-gray-200"
       onLayout={handleLayoutChange}
     >
       <Animated.View

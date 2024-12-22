@@ -1,6 +1,7 @@
 import { Alert, Linking, Platform } from "react-native";
 import base64 from "react-native-base64";
-import type { BleManager, Device } from "react-native-ble-plx";
+import type { Peripheral } from "react-native-ble-manager";
+import BleManager from "react-native-ble-manager";
 
 class BluetoothModule {
   private static instance: BluetoothModule | null = null;
@@ -26,16 +27,17 @@ class BluetoothModule {
    * @param device
    * @returns true if the password is correct, false otherwise
    */
-  async verifyPassword(device: Device) {
-    const base64Password = this.encodeHexToBase64(
+  async verifyPassword(peripheralId: Peripheral["id"]) {
+    const byteArray = this.encodeHexToByteArray(
       BluetoothModule.DEVICE_PASSWORD
     );
 
     try {
-      await device.writeCharacteristicWithResponseForService(
-        "0000fff0-0000-1000-8000-00805f9b34fb",
-        "0000fff6-0000-1000-8000-00805f9b34fb",
-        base64Password
+      await BleManager.write(
+        peripheralId,
+        BluetoothModule.DEVICE_SERVICE_UUID,
+        BluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+        byteArray
       );
 
       return true;
@@ -50,7 +52,7 @@ class BluetoothModule {
    * @param hexData
    * @returns base64 encoded string
    */
-  encodeHexToBase64(hexData: string) {
+  encodeHexToByteArray(hexData: string) {
     // Convert hex string to byte array
     const byteArray = hexData
       ?.match(/.{1,2}/g)
@@ -60,52 +62,43 @@ class BluetoothModule {
       throw new Error("byteArray is undefined");
     }
 
-    // Convert byte array to Base64
-    const base64Data = base64.encode(String.fromCharCode(...byteArray));
-
-    return base64Data;
+    return byteArray;
   }
 
-  async checkBluetooth(bleManager: BleManager) {
-    // For iOS, request permissions explicitly
-    if (Platform.OS === "ios") {
-      await bleManager.enable();
+  async enableBluetooth() {
+    try {
+      console.debug("[enableBluetooth] enabling bluetooth");
+      await BleManager.enableBluetooth();
+    } catch (error) {
+      console.error("[enableBluetooth] thrown", error);
     }
-
-    // Listen for Bluetooth state changes
-    const subscription = bleManager.onStateChange((state) => {
-      if (state === "PoweredOn") {
-        console.log("Bluetooth is enabled");
-      } else {
-        this.promptToEnableBluetooth(bleManager);
-      }
-    }, true);
-
-    // Cleanup the subscription on unmount
-    return () => subscription.remove();
   }
 
-  promptToEnableBluetooth(bleManager: BleManager) {
-    Alert.alert(
-      "Enable Bluetooth",
-      "Bluetooth is required to connect to devices. Please turn it on.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Open Settings",
-          onPress: () => {
-            if (Platform.OS === "ios") {
-              // Open iOS settings
-              Linking.openURL("App-Prefs:Bluetooth");
-            } else {
-              // Open Android settings
-              bleManager.enable(); // Tries to enable Bluetooth on Android
-            }
-          },
-        },
-      ]
-    );
+  async checkBluetooth() {
+    await this.enableBluetooth();
   }
+
+  //   promptToEnableBluetooth(bleManager: BleManager) {
+  //     Alert.alert(
+  //       "Enable Bluetooth",
+  //       "Bluetooth is required to connect to devices. Please turn it on.",
+  //       [
+  //         { text: "Cancel", style: "cancel" },
+  //         {
+  //           text: "Open Settings",
+  //           onPress: () => {
+  //             if (Platform.OS === "ios") {
+  //               // Open iOS settings
+  //               Linking.openURL("App-Prefs:Bluetooth");
+  //             } else {
+  //               // Open Android settings
+  //               bleManager.enable(); // Tries to enable Bluetooth on Android
+  //             }
+  //           },
+  //         },
+  //       ]
+  //     );
+  //   }
 }
 
 export default BluetoothModule;

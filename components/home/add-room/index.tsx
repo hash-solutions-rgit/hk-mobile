@@ -17,7 +17,10 @@ function AddRoom({}: Props) {
     <View className="flex flex-col gap-y-4 flex-1">
       <View className="flex flex-row justify-between">
         <Text className="text-xl font-semibold">Your Rooms</Text>
-        <AddRoomForm />
+
+        <Render renderIf={!!rooms.length}>
+          <AddRoomForm />
+        </Render>
       </View>
 
       <Render renderIf={!!rooms.length}>

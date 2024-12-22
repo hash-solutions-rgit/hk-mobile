@@ -1,17 +1,12 @@
-/* eslint-disable no-bitwise */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
-import {
-  BleError,
-  BleManager,
-  Characteristic,
-  Device,
-} from "react-native-ble-plx";
+import bleManager, { Peripheral } from "react-native-ble-manager";
 
 import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
 import BluetoothModule from "~/utils/bluetooth-module";
+import { useBluetoothDeviceModuleStore } from "~/store";
 
 const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
 const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
@@ -19,23 +14,22 @@ const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
   scanForPeripherals(): void;
-  connectToDevice: (deviceId: Device) => Promise<void>;
+  connectToDevice: (deviceId: Peripheral) => Promise<void>;
   disconnectFromDevice: () => void;
-  connectedDevice: Device | null;
-  allDevices: Device[];
+  connectedDevice: Peripheral | null;
+  allDevices: Map<string, Peripheral>;
   checkBluetooth: () => void;
-  bleManager: BleManager;
+  isScanning: boolean;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
-  const bleManager = useMemo(() => new BleManager(), []);
-  const [allDevices, setAllDevices] = useState<Device[]>([]);
-  const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-
+  // hooks
+  const { connectedDevice, allDevices, addDevice, setIsScanning, isScanning } =
+    useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
 
   const checkBluetooth = async () => {
-    await bluetoothModule.checkBluetooth(bleManager);
+    await bluetoothModule.checkBluetooth();
   };
 
   const requestAndroid31Permissions = async () => {
@@ -95,78 +89,141 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const isDuplicteDevice = (devices: Device[], nextDevice: Device) =>
+  const isDuplicteDevice = (devices: Peripheral[], nextDevice: Peripheral) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
-  const scanForPeripherals = () =>
-    bleManager.startDeviceScan(null, null, (error, device) => {
-      if (error) {
-        console.log(error);
-      }
-
-      if (!device) return;
-      setAllDevices((prevState: Device[]) => {
-        if (!isDuplicteDevice(prevState, device)) {
-          return [...prevState, device];
-        }
-        return prevState;
-      });
-    });
-
-  const discoverServicesAndCharacteristics = async (device: Device) => {
-    try {
-      const services = await device.services();
-      for (const service of services) {
-        console.log(`Service UUID: ${service.uuid}`);
-        const characteristics = await service.characteristics();
-        for (const characteristic of characteristics) {
-          console.log(`Characteristic UUID: ${characteristic.uuid}`);
-        }
-      }
-    } catch (error) {
-      console.error("Discovery error:", error);
-    }
+  const scanForPeripherals = async () => {
+    setIsScanning(true);
+    await bleManager.scan([DEVICE_SERVICE_UUID], 10, false, {});
+    setIsScanning(false);
   };
 
-  const connectToDevice = async (device: Device) => {
-    try {
-      const deviceConnection = await bleManager.connectToDevice(device.id);
-      setConnectedDevice(deviceConnection);
-      await deviceConnection.discoverAllServicesAndCharacteristics();
-      bleManager.stopDeviceScan();
-      await discoverServicesAndCharacteristics(device);
+  const discoverServicesAndCharacteristics = async (device: Peripheral) => {
+    // try {
+    //   const services = await device.services();
+    //   for (const service of services) {
+    //     console.log(`Service UUID: ${service.uuid}`);
+    //     const characteristics = await service.characteristics();
+    //     for (const characteristic of characteristics) {
+    //       console.log(`Characteristic UUID: ${characteristic.uuid}`);
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Discovery error:", error);
+    // }
+  };
 
-      const hexData = "8f383838384f4b3031";
-
-      const parsseData = (hexData: string) => {
-        const byteArray = hexData
-          ?.match(/.{1,2}/g)
-          ?.map((byte) => parseInt(byte, 16));
-
-        // Convert byte array to Base64
-        const base64Data = base64.encode(String.fromCharCode(...byteArray!));
-
-        return base64Data;
-      };
-
-      const s = await device.writeCharacteristicWithResponseForService(
-        "0000fff0-0000-1000-8000-00805f9b34fb",
-        "0000fff6-0000-1000-8000-00805f9b34fb",
-        parsseData(hexData)
-      );
-
-      console.log("Servive Password", JSON.stringify(s));
-    } catch (e) {
-      console.log("FAILED TO CONNECT", e);
-    }
+  const connectToDevice = async (device: Peripheral) => {
+    // try {
+    //   const deviceConnection = await bleManager.connectToDevice(device.id);
+    //   setConnectedDevice(deviceConnection);
+    //   await deviceConnection.discoverAllServicesAndCharacteristics();
+    //   bleManager.stopDeviceScan();
+    //   await discoverServicesAndCharacteristics(device);
+    //   const hexData = "8f383838384f4b3031";
+    //   const parsseData = (hexData: string) => {
+    //     const byteArray = hexData
+    //       ?.match(/.{1,2}/g)
+    //       ?.map((byte) => parseInt(byte, 16));
+    //     // Convert byte array to Base64
+    //     const base64Data = base64.encode(String.fromCharCode(...byteArray!));
+    //     return base64Data;
+    //   };
+    //   const s = await device.writeCharacteristicWithResponseForService(
+    //     "0000fff0-0000-1000-8000-00805f9b34fb",
+    //     "0000fff6-0000-1000-8000-00805f9b34fb",
+    //     parsseData(hexData)
+    //   );
+    //   console.log("Servive Password", JSON.stringify(s));
+    // } catch (e) {
+    //   console.log("FAILED TO CONNECT", e);
+    // }
   };
 
   const disconnectFromDevice = () => {
-    if (connectedDevice) {
-      bleManager.cancelDeviceConnection(connectedDevice.id);
-      setConnectedDevice(null);
+    // if (connectedDevice) {
+    //   bleManager.cancelDeviceConnection(connectedDevice.id);
+    //   setConnectedDevice(null);
+    // }
+  };
+
+  //   handlers
+  const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
+    if (!peripheral.name) {
+      peripheral.name = "NO NAME";
+    }
+    addDevice(peripheral);
+  };
+
+  const handleAndroidPermissions = () => {
+    if (Platform.OS === "android" && Platform.Version >= 31) {
+      PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      ]).then((result) => {
+        if (result) {
+          console.debug(
+            "[handleAndroidPermissions] User accepts runtime permissions android 12+"
+          );
+        } else {
+          console.error(
+            "[handleAndroidPermissions] User refuses runtime permissions android 12+"
+          );
+        }
+      });
+    } else if (Platform.OS === "android" && Platform.Version >= 23) {
+      PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      ).then((checkResult) => {
+        if (checkResult) {
+          console.debug(
+            "[handleAndroidPermissions] runtime permission Android <12 already OK"
+          );
+        } else {
+          PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          ).then((requestResult) => {
+            if (requestResult) {
+              console.debug(
+                "[handleAndroidPermissions] User accepts runtime permission android <12"
+              );
+            } else {
+              console.error(
+                "[handleAndroidPermissions] User refuses runtime permission android <12"
+              );
+            }
+          });
+        }
+      });
     }
   };
+
+  useEffect(() => {
+    try {
+      bleManager
+        .start({ showAlert: false })
+        .then(() => console.debug("BleManager started."))
+        .catch((error: any) =>
+          console.error("BeManager could not be started.", error)
+        );
+    } catch (error) {
+      console.error("unexpected error starting BleManager.", error);
+      return;
+    }
+
+    const listeners = [
+      bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
+    ];
+
+    handleAndroidPermissions();
+
+    return () => {
+      console.debug("[app] main component unmounting. Removing listeners...");
+      for (const listener of listeners) {
+        listener.remove();
+      }
+    };
+  }, []);
 
   return {
     scanForPeripherals,
@@ -175,9 +232,8 @@ function useBLE(): BluetoothLowEnergyApi {
     allDevices,
     connectedDevice,
     disconnectFromDevice,
-
     checkBluetooth,
-    bleManager,
+    isScanning,
   };
 }
 

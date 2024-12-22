@@ -1,9 +1,9 @@
-import { View, Text, Pressable } from "react-native";
+import { Pressable } from "react-native";
 import React, { useEffect } from "react";
-import { LabelPosition } from "@react-navigation/bottom-tabs/lib/typescript/commonjs/src/types";
 import Render from "../render";
 import { House } from "~/lib/icons/house";
 import { ShoppingBag } from "~/lib/icons/shopping-bag";
+import { Wind } from "~/lib/icons/wind";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -26,6 +26,9 @@ type IconProps = {
 const icons = {
   index: ({ isFocused }: IconProps) => (
     <House className={cn("w-8 h-8", isFocused ? "text-white" : "text-black")} />
+  ),
+  device: ({ isFocused }: IconProps) => (
+    <Wind className={cn("w-8 h-8", isFocused ? "text-white" : "text-black")} />
   ),
   shop: ({ isFocused }: IconProps) => (
     <ShoppingBag

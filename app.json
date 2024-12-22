@@ -33,6 +33,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
+      ],
+      [
+        "react-native-ble-manager",
+        {
+          "isBleRequired": true,
+          "bluetoothAlwaysPermission": true
+        }
       ]
     ],
     "experiments": {
