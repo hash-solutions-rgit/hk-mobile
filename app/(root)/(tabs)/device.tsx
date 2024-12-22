@@ -30,7 +30,7 @@ const DevicesTab = () => {
   }, []);
 
   return (
-    <ScrollView className="flex flex-col gap-y-4 p-5 flex-1">
+    <ScrollView className="flex flex-col gap-y-4 p-5 flex-1 h-full">
       <Render renderIf={!!connectedDevice}>
         <Text className="text-white">Connected to {connectedDevice?.name}</Text>
       </Render>
