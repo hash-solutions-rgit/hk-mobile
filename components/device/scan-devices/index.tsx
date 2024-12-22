@@ -9,11 +9,21 @@ import { View } from "lucide-react-native";
 
 const ScanDevices = () => {
   // hooks
-  const { allDevices, isScanning, connectedDevice } = useBLE();
+  const { allDevices, isScanning, connectedDevice, scanForPeripherals } =
+    useBLE();
+
+  // handlers
+  const handleScanForPeripherals = () => {
+    if (isScanning) return;
+    scanForPeripherals();
+  };
 
   return (
     <ScrollView className="flex flex-col gap-y-4 p-5 flex-1">
-      <Button className="flex-row justify-center items-center text-center gap-2">
+      <Button
+        className="flex-row justify-center items-center text-center gap-2"
+        onPress={handleScanForPeripherals}
+      >
         <Render renderIf={isScanning}>
           <>
             <ActivityIndicator className="w-10 h-10 text-white" />
