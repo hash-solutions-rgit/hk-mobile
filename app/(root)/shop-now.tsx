@@ -9,7 +9,10 @@ import { cn } from "~/lib/utils";
 const ShopNow = () => {
   return (
     <SafeAreaView className="flex-1">
-      <WebView source={{ uri: "https://hauskorper.co.uk/" }} />
+      <WebView
+        source={{ uri: "https://hauskorper.co.uk/" }}
+        allowsInlineMediaPlayback
+      />
 
       <View className="p-4 bg-white">
         <Link
