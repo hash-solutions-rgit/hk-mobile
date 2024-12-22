@@ -11,6 +11,7 @@ import {
 import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
+import BluetoothModule from "~/utils/bluetooth-module";
 
 const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
 const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
@@ -22,7 +23,6 @@ interface BluetoothLowEnergyApi {
   disconnectFromDevice: () => void;
   connectedDevice: Device | null;
   allDevices: Device[];
-  heartRate: number;
   checkBluetooth: () => void;
   bleManager: BleManager;
 }
@@ -31,47 +31,11 @@ function useBLE(): BluetoothLowEnergyApi {
   const bleManager = useMemo(() => new BleManager(), []);
   const [allDevices, setAllDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-  const [heartRate, setHeartRate] = useState<number>(0);
 
-  const promptToEnableBluetooth = () => {
-    Alert.alert(
-      "Enable Bluetooth",
-      "Bluetooth is required to connect to devices. Please turn it on.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Open Settings",
-          onPress: () => {
-            if (Platform.OS === "ios") {
-              // Open iOS settings
-              Linking.openURL("App-Prefs:Bluetooth");
-            } else {
-              // Open Android settings
-              bleManager.enable(); // Tries to enable Bluetooth on Android
-            }
-          },
-        },
-      ]
-    );
-  };
+  const bluetoothModule = BluetoothModule.getInstance();
 
   const checkBluetooth = async () => {
-    // For iOS, request permissions explicitly
-    if (Platform.OS === "ios") {
-      await bleManager.enable();
-    }
-
-    // Listen for Bluetooth state changes
-    const subscription = bleManager.onStateChange((state) => {
-      if (state === "PoweredOn") {
-        console.log("Bluetooth is enabled");
-      } else {
-        promptToEnableBluetooth();
-      }
-    }, true);
-
-    // Cleanup the subscription on unmount
-    return () => subscription.remove();
+    await bluetoothModule.checkBluetooth(bleManager);
   };
 
   const requestAndroid31Permissions = async () => {
@@ -201,47 +165,6 @@ function useBLE(): BluetoothLowEnergyApi {
     if (connectedDevice) {
       bleManager.cancelDeviceConnection(connectedDevice.id);
       setConnectedDevice(null);
-      setHeartRate(0);
-    }
-  };
-
-  const onHeartRateUpdate = (
-    error: BleError | null,
-    characteristic: Characteristic | null
-  ) => {
-    if (error) {
-      console.log(error);
-      return -1;
-    } else if (!characteristic?.value) {
-      console.log("No Data was recieved");
-      return -1;
-    }
-
-    const rawData = base64.decode(characteristic.value);
-    let innerHeartRate: number = -1;
-
-    const firstBitValue: number = Number(rawData) & 0x01;
-
-    if (firstBitValue === 0) {
-      innerHeartRate = rawData[1].charCodeAt(0);
-    } else {
-      innerHeartRate =
-        Number(rawData[1].charCodeAt(0) << 8) +
-        Number(rawData[2].charCodeAt(2));
-    }
-
-    setHeartRate(innerHeartRate);
-  };
-
-  const startStreamingData = async (device: Device) => {
-    if (device) {
-      device.monitorCharacteristicForService(
-        DEVICE_SERVICE_UUID,
-        DEVICE_CHARACTERISTIC_UUID,
-        onHeartRateUpdate
-      );
-    } else {
-      console.log("No Device Connected");
     }
   };
 
@@ -252,7 +175,7 @@ function useBLE(): BluetoothLowEnergyApi {
     allDevices,
     connectedDevice,
     disconnectFromDevice,
-    heartRate,
+
     checkBluetooth,
     bleManager,
   };

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { Text } from "../ui/text";
+import { Text } from "../../ui/text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRoomsStore } from "~/store";
 import { Room } from "~/types";
@@ -15,11 +15,11 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog";
 import { View } from "react-native";
-import { Input } from "../ui/input";
+import { Input } from "../../ui/input";
 
 type Props = {};
 
-function AddRoom({}: Props) {
+function AddRoomForm({}: Props) {
   // local state
   const [roomName, setRoomName] = useState("");
   const [open, setOpen] = useState(false);
@@ -78,4 +78,4 @@ function AddRoom({}: Props) {
   );
 }
 
-export default AddRoom;
+export default AddRoomForm;
