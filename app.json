@@ -40,6 +40,14 @@
           "isBleRequired": true,
           "bluetoothAlwaysPermission": true
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "node_modules/@expo-google-fonts/nunito-sans/NunitoSans_400Regular.ttf"
+          ]
+        }
       ]
     ],
     "experiments": {
