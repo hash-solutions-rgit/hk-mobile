@@ -1,38 +1,18 @@
 import "~/global.css";
 
-import { Stack } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
+import CustomSplashScreen from "~/components/common/splashscreen";
 import React, { useEffect } from "react";
 import { PortalHost } from "@rn-primitives/portal";
-import * as SplashScreen from "expo-splash-screen";
-
-// const LIGHT_THEME: Theme = {
-//   dark: false,
-//   colors: NAV_THEME.light,
-// };
-// const DARK_THEME: Theme = {
-//   dark: true,
-//   colors: NAV_THEME.dark,
-// };
-
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
-
-// Set the animation options. This is optional.
-SplashScreen.setOptions({
-  duration: 1000,
-  fade: true,
-});
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from "expo-router";
 
-// Prevent the splash screen from auto-hiding before getting the color scheme.
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
   const [appIsReady, setAppIsReady] = React.useState(false);
+  const [splashDone, setSplashDone] = React.useState(false);
 
   useEffect(() => {
     async function prepare() {
@@ -52,10 +32,13 @@ export default function RootLayout() {
 
   React.useEffect(() => {
     SplashScreen.hide();
+    setTimeout(() => {
+      setSplashDone(true);
+    }, 5000);
   }, []);
 
-  if (!appIsReady) {
-    return null;
+  if (!appIsReady || !splashDone) {
+    return <CustomSplashScreen />;
   }
 
   return (
