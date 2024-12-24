@@ -1,5 +1,5 @@
 import { ActivityIndicator, ScrollView } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import useBLE from "~/hooks/useBLE";
 import Render from "~/components/common/render";
 import { Button } from "~/components/ui/button";
@@ -19,7 +19,8 @@ import Animated, {
 
 const ScanDevices = () => {
   // hooks
-  const { allDevices, scanForPeripherals } = useBLE();
+  const { allDevices, scanForPeripherals, connectToDevice, connectedDevice } =
+    useBLE();
 
   const scale = useSharedValue(0);
 
@@ -84,6 +85,10 @@ const ScanDevices = () => {
     };
   });
 
+  useEffect(() => {
+    handleScanForPeripherals();
+  }, []);
+
   return (
     <View className="flex gap-y-4 p-5 flex-col flex-1">
       <View className="flex-row justify-center items-center flex w-full h-60 relative">
@@ -127,23 +132,28 @@ const ScanDevices = () => {
         <View className="gap-2 flex-col flex">
           <Text className="text-white">Devices</Text>
           {Array.from(allDevices.values()).map((device) => (
-            <Button key={device.id}>
+            <Button
+              key={device.id}
+              onPress={async () => {
+                await connectToDevice(device);
+              }}
+            >
               <Text className="text-white">{device.name}</Text>
             </Button>
           ))}
         </View>
       </Render>
-      {/* 
+
       <View className="flex-row justify-center items-center gap-2 h-full">
         <Render renderIf={!!connectedDevice}>
-          <Text className="text-white">
+          <Text className="text-black">
             Connected to {connectedDevice?.name}
           </Text>
         </Render>
         <Render renderIf={!connectedDevice}>
-          <Text className="">No device connected</Text>
+          <Text className="text-black">No device connected</Text>
         </Render>
-      </View> */}
+      </View>
     </View>
   );
 };

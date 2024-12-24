@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Render from "~/components/common/render";
 import ScanDevices from "~/components/device/scan-devices";
+import DeviceController from "~/components/device/device-controller";
 
 const DevicesTab = () => {
   const {
@@ -32,7 +33,7 @@ const DevicesTab = () => {
   return (
     <ScrollView className="flex flex-col gap-y-4 p-5 flex-1 h-full">
       <Render renderIf={!!connectedDevice}>
-        <Text className="text-white">Connected to {connectedDevice?.name}</Text>
+       <DeviceController />
       </Render>
       <Render renderIf={!connectedDevice}>
         <ScanDevices />

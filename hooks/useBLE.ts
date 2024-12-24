@@ -14,6 +14,7 @@ const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
   scanForPeripherals(): void;
+  stopScanPeripherals(): Promise<void>;
   connectToDevice: (deviceId: Peripheral) => Promise<void>;
   disconnectFromDevice: () => void;
   connectedDevice: Peripheral | null;
@@ -24,7 +25,7 @@ interface BluetoothLowEnergyApi {
 
 function useBLE(): BluetoothLowEnergyApi {
   // hooks
-  const { connectedDevice, allDevices, addDevice, setIsScanning, isScanning } =
+  const { connectedDevice, allDevices, addDevice, setIsScanning, isScanning,setConnectedDevice } =
     useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
 
@@ -98,6 +99,10 @@ function useBLE(): BluetoothLowEnergyApi {
     setIsScanning(false);
   };
 
+  const stopScanPeripherals = async ()=>{
+    await bleManager.stopScan()
+  }
+
   const discoverServicesAndCharacteristics = async (device: Peripheral) => {
     // try {
     //   const services = await device.services();
@@ -114,30 +119,13 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   const connectToDevice = async (device: Peripheral) => {
-    // try {
-    //   const deviceConnection = await bleManager.connectToDevice(device.id);
-    //   setConnectedDevice(deviceConnection);
-    //   await deviceConnection.discoverAllServicesAndCharacteristics();
-    //   bleManager.stopDeviceScan();
-    //   await discoverServicesAndCharacteristics(device);
-    //   const hexData = "8f383838384f4b3031";
-    //   const parsseData = (hexData: string) => {
-    //     const byteArray = hexData
-    //       ?.match(/.{1,2}/g)
-    //       ?.map((byte) => parseInt(byte, 16));
-    //     // Convert byte array to Base64
-    //     const base64Data = base64.encode(String.fromCharCode(...byteArray!));
-    //     return base64Data;
-    //   };
-    //   const s = await device.writeCharacteristicWithResponseForService(
-    //     "0000fff0-0000-1000-8000-00805f9b34fb",
-    //     "0000fff6-0000-1000-8000-00805f9b34fb",
-    //     parsseData(hexData)
-    //   );
-    //   console.log("Servive Password", JSON.stringify(s));
-    // } catch (e) {
-    //   console.log("FAILED TO CONNECT", e);
-    // }
+    try {
+      await bleManager.connect(device.id);
+        setConnectedDevice(device)
+    } catch (error) {
+      console.error("Error while connecting",error)
+    }
+
   };
 
   const disconnectFromDevice = () => {
@@ -146,6 +134,8 @@ function useBLE(): BluetoothLowEnergyApi {
     //   setConnectedDevice(null);
     // }
   };
+
+
 
   //   handlers
   const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
@@ -213,6 +203,7 @@ function useBLE(): BluetoothLowEnergyApi {
 
     const listeners = [
       bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
+    
     ];
 
     handleAndroidPermissions();
@@ -234,6 +225,7 @@ function useBLE(): BluetoothLowEnergyApi {
     disconnectFromDevice,
     checkBluetooth,
     isScanning,
+    stopScanPeripherals
   };
 }
 

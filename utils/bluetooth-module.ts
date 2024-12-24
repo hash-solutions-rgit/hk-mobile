@@ -28,10 +28,7 @@ class BluetoothModule {
    * @returns true if the password is correct, false otherwise
    */
   async verifyPassword(peripheralId: Peripheral["id"]) {
-    const byteArray = this.encodeHexToByteArray(
-      BluetoothModule.DEVICE_PASSWORD
-    );
-
+    const byteArray = this.hexToByteArray(BluetoothModule.DEVICE_PASSWORD);
     try {
       await BleManager.write(
         peripheralId,
@@ -42,7 +39,41 @@ class BluetoothModule {
 
       return true;
     } catch (error) {
-      console.log("FAILED TO CONNECT", error);
+      console.log("FAILED TO Verify the device", error);
+      return false;
+    }
+  }
+
+  hexToByteArray(hex: string): number[] {
+    if (hex.length % 2 !== 0) {
+      throw new Error("Invalid hexadecimal string");
+    }
+
+    const byteArray: number[] = [];
+    for (let i = 0; i < hex.length; i += 2) {
+      byteArray.push(parseInt(hex.substr(i, 2), 16));
+    }
+    return byteArray;
+  }
+
+  async startStopDevice(peripheralId: Peripheral["id"], isDeviceOn: boolean) {
+    await BleManager.retrieveServices(peripheralId, [
+      BluetoothModule.DEVICE_SERVICE_UUID,
+    ]);
+    const verified = await this.verifyPassword(peripheralId);
+    if (!verified) throw Error("failed to verify");
+    const byteArray = this.hexToByteArray(isDeviceOn ? "2d0000" : "2d0101");
+    try {
+      await BleManager.write(
+        peripheralId,
+        BluetoothModule.DEVICE_SERVICE_UUID,
+        BluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+        byteArray
+      );
+
+      return true;
+    } catch (error) {
+      console.log("FAILED TO Start or Stop Device", error);
       return false;
     }
   }
