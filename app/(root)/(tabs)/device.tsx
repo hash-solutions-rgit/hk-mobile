@@ -1,22 +1,12 @@
-import { View, Text, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 import React, { useEffect } from "react";
 import useBLE from "~/hooks/useBLE";
-import { Button } from "~/components/ui/button";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Render from "~/components/common/render";
 import ScanDevices from "~/components/device/scan-devices";
 import DeviceController from "~/components/device/device-controller";
 
 const DevicesTab = () => {
-  const {
-    requestPermissions,
-    scanForPeripherals,
-    allDevices,
-    connectToDevice,
-    connectedDevice,
-    disconnectFromDevice,
-    checkBluetooth,
-  } = useBLE();
+  const { requestPermissions, connectedDevice, checkBluetooth } = useBLE();
 
   const checkBluetoothPermissions = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -32,12 +22,12 @@ const DevicesTab = () => {
 
   return (
     <ScrollView className="flex flex-col gap-y-4 p-5 flex-1 h-full">
-      <Render renderIf={!!connectedDevice}>
-       <DeviceController />
-      </Render>
-      <Render renderIf={!connectedDevice}>
+      {/* <Render renderIf={!!connectedDevice}> */}
+      <DeviceController />
+      {/* </Render> */}
+      {/* <Render renderIf={!connectedDevice}>
         <ScanDevices />
-      </Render>
+      </Render> */}
     </ScrollView>
   );
 };

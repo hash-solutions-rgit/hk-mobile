@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
+import { useEffect } from "react";
+import { PermissionsAndroid, Platform } from "react-native";
 import bleManager, { Peripheral } from "react-native-ble-manager";
 
 import * as ExpoDevice from "expo-device";
 
-import base64 from "react-native-base64";
 import BluetoothModule from "~/utils/bluetooth-module";
 import { useBluetoothDeviceModuleStore } from "~/store";
 
@@ -25,8 +24,15 @@ interface BluetoothLowEnergyApi {
 
 function useBLE(): BluetoothLowEnergyApi {
   // hooks
-  const { connectedDevice, allDevices, addDevice, setIsScanning, isScanning,setConnectedDevice } =
-    useBluetoothDeviceModuleStore();
+  const {
+    connectedDevice,
+    allDevices,
+    addDevice,
+    setIsScanning,
+    isScanning,
+    setConnectedDevice,
+    setAllDevices,
+  } = useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
 
   const checkBluetooth = async () => {
@@ -95,13 +101,13 @@ function useBLE(): BluetoothLowEnergyApi {
 
   const scanForPeripherals = async () => {
     setIsScanning(true);
-    await bleManager.scan([DEVICE_SERVICE_UUID], 10, false, {});
-    setIsScanning(false);
+    await bleManager.scan([DEVICE_SERVICE_UUID], 0, false, {});
   };
 
-  const stopScanPeripherals = async ()=>{
-    await bleManager.stopScan()
-  }
+  const stopScanPeripherals = async () => {
+    await bleManager.stopScan();
+    setAllDevices(new Map());
+  };
 
   const discoverServicesAndCharacteristics = async (device: Peripheral) => {
     // try {
@@ -121,28 +127,44 @@ function useBLE(): BluetoothLowEnergyApi {
   const connectToDevice = async (device: Peripheral) => {
     try {
       await bleManager.connect(device.id);
-        setConnectedDevice(device)
     } catch (error) {
-      console.error("Error while connecting",error)
+      console.error("Error while connecting", error);
     }
-
   };
 
   const disconnectFromDevice = () => {
-    // if (connectedDevice) {
-    //   bleManager.cancelDeviceConnection(connectedDevice.id);
-    //   setConnectedDevice(null);
-    // }
+    if (connectedDevice) {
+      bleManager.disconnect(connectedDevice.id);
+    }
   };
-
-
 
   //   handlers
   const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
+    console.log("handleOnDiscoverPeripheral", peripheral);
     if (!peripheral.name) {
       peripheral.name = "NO NAME";
+    } else {
+      addDevice(peripheral);
     }
-    addDevice(peripheral);
+  };
+
+  const handleOnConnectPeripheral = async (peripheral: string) => {
+    const peripheralDevice = allDevices.get(peripheral);
+    if (peripheralDevice) {
+      setConnectedDevice(peripheralDevice);
+      await stopScanPeripherals();
+    }
+  };
+
+  const handleOnStopScan = () => {
+    setIsScanning(false);
+  };
+
+  const handleOnDisconnectPeripheral = (peripheral: string) => {
+    const peripheralDevice = allDevices.get(peripheral);
+    if (peripheralDevice) {
+      setConnectedDevice(null);
+    }
   };
 
   const handleAndroidPermissions = () => {
@@ -203,7 +225,9 @@ function useBLE(): BluetoothLowEnergyApi {
 
     const listeners = [
       bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
-    
+      bleManager.onConnectPeripheral(handleOnConnectPeripheral),
+      bleManager.onStopScan(handleOnStopScan),
+      bleManager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
     ];
 
     handleAndroidPermissions();
@@ -225,7 +249,7 @@ function useBLE(): BluetoothLowEnergyApi {
     disconnectFromDevice,
     checkBluetooth,
     isScanning,
-    stopScanPeripherals
+    stopScanPeripherals,
   };
 }
 

@@ -1,5 +1,3 @@
-import { Alert, Linking, Platform } from "react-native";
-import base64 from "react-native-base64";
 import type { Peripheral } from "react-native-ble-manager";
 import BleManager from "react-native-ble-manager";
 
