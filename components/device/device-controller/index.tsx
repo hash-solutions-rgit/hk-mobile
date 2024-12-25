@@ -30,11 +30,6 @@ const DeviceController = () => {
   const { isDeviceOn } = useDeviceStore();
   const [value, setValue] = useState<TabsValue>("controller");
 
-  useEffect(() => {
-    if (!connectedDevice) return;
-    bluetoothModule.startStopDevice(connectedDevice?.id, isDeviceOn);
-  }, [bluetoothModule, connectedDevice, isDeviceOn]);
-
   if (!connectedDevice) {
     return <ScannedDevices />;
   }

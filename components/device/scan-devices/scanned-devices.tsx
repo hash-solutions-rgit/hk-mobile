@@ -67,7 +67,7 @@ function BluetoothScannedDeviceCard({ item }: BluetoothScannedDeviceCardProps) {
 
   return (
     <Button onPress={handleConnectToDevice} variant={"outline"}>
-      <Text className="text-white">{item.name}</Text>
+      <Text className="text-black">{item.name}</Text>
     </Button>
   );
 }

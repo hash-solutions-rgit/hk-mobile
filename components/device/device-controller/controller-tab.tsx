@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { TabsContent } from "~/components/ui/tabs";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -9,17 +9,25 @@ import { Switch } from "~/components/ui/switch";
 import { View } from "react-native";
 import { Text } from "~/components/ui/text";
 import useBLE from "~/hooks/useBLE";
+import BluetoothModule from "~/utils/bluetooth-module";
 
 const ControllerTab = () => {
   // hooks
   const { connectedDevice } = useBLE();
   const { toggleIsDeviceOn, isDeviceOn } = useDeviceStore();
+
+  const bluetoothModule = BluetoothModule.getInstance();
   // handlers
   const handleStartStopDevice = async () => {
     if (!connectedDevice) return;
     toggleIsDeviceOn();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
   };
+
+  useEffect(() => {
+    if (!connectedDevice) return;
+    bluetoothModule.startStopDevice(connectedDevice?.id, isDeviceOn);
+  }, [bluetoothModule, connectedDevice, isDeviceOn]);
 
   return (
     <TabsContent value="controller" className="py-4 flex flex-col gap-y-4">

@@ -111,6 +111,10 @@ function useBLE(): BluetoothLowEnergyApi {
 
   const scanForPeripherals = async () => {
     setIsScanning(true);
+    console.log(
+      bluetoothModule.DEVICE_SERVICE_UUID,
+      "bluetoothModule.DEVICE_SERVICE_UUID"
+    );
     await bleManager.scan([bluetoothModule.DEVICE_SERVICE_UUID], 0, false, {});
   };
 
@@ -137,10 +141,10 @@ function useBLE(): BluetoothLowEnergyApi {
   const connectToDevice = async (device: Peripheral) => {
     try {
       await bleManager.connect(device.id);
-      await bluetoothModule.verifyPassword(device.id);
       await bleManager.retrieveServices(device.id, [
         bluetoothModule.DEVICE_SERVICE_UUID,
       ]);
+      await bluetoothModule.verifyPassword(device.id);
     } catch (error) {
       console.error("Error while connecting", error);
     }
@@ -154,7 +158,6 @@ function useBLE(): BluetoothLowEnergyApi {
 
   //   handlers
   const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
-    console.log("handleOnDiscoverPeripheral", peripheral);
     if (!peripheral.name) {
       peripheral.name = "NO NAME";
     } else {
@@ -162,12 +165,15 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const handleOnConnectPeripheral = async (peripheral: string) => {
-    const peripheralDevice = allDevices.get(peripheral);
+  const handleOnConnectPeripheral = async (peripheral: {
+    peripheral: string;
+    status: number;
+  }) => {
+    const peripheralDevice = allDevices.get(peripheral.peripheral);
     if (peripheralDevice) {
       setConnectedDevice(peripheralDevice);
       await stopScanPeripherals();
-      sendHeartBeat(peripheral);
+      sendHeartBeat(peripheral.peripheral);
     }
   };
 

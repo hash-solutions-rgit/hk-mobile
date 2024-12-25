@@ -63,7 +63,7 @@ class BluetoothModule {
   }
 
   async startStopDevice(peripheralId: Peripheral["id"], isDeviceOn: boolean) {
-    const byteArray = this.hexToByteArray(isDeviceOn ? "2d0000" : "2d0101");
+    const byteArray = this.hexToByteArray(!isDeviceOn ? "2d0000" : "2d0101");
     try {
       await BleManager.write(
         peripheralId,
