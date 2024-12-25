@@ -23,18 +23,18 @@ const IntensityController = () => {
 
   const bluetoothModule = BluetoothModule.getInstance();
 
-  const [currentValue, setCurrentValue] = useState(0); // Value based on interaction
+  const [currentValue, setCurrentValue] = useState(1); // Value based on interaction
 
   const debouncedValue = useDebounce(currentValue, 500); // Debounce the value to prevent rapid updates
 
   const totalDashes = 20; // Number of dashes in the circle
 
   const incrementValue = () => {
-    setCurrentValue((prev) => (prev < 100 ? prev + 1 : 100));
+    setCurrentValue((prev) => (prev < totalDashes ? prev + 1 : totalDashes));
   };
 
   const decrementValue = () => {
-    setCurrentValue((prev) => (prev > 0 ? prev - 1 : 0));
+    setCurrentValue((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
   const handleAdjustIntensity = useCallback(() => {

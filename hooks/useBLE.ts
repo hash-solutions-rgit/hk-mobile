@@ -16,6 +16,7 @@ interface BluetoothLowEnergyApi {
   connectedDevice: Peripheral | null;
   allDevices: Map<string, Peripheral>;
   checkBluetooth: () => void;
+  renameDevice: (name: string) => void;
   isScanning: boolean;
 }
 
@@ -123,21 +124,6 @@ function useBLE(): BluetoothLowEnergyApi {
     setAllDevices(new Map());
   };
 
-  const discoverServicesAndCharacteristics = async (device: Peripheral) => {
-    // try {
-    //   const services = await device.services();
-    //   for (const service of services) {
-    //     console.log(`Service UUID: ${service.uuid}`);
-    //     const characteristics = await service.characteristics();
-    //     for (const characteristic of characteristics) {
-    //       console.log(`Characteristic UUID: ${characteristic.uuid}`);
-    //     }
-    //   }
-    // } catch (error) {
-    //   console.error("Discovery error:", error);
-    // }
-  };
-
   const connectToDevice = async (device: Peripheral) => {
     try {
       await bleManager.connect(device.id);
@@ -150,8 +136,9 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const disconnectFromDevice = () => {
+  const disconnectFromDevice = async () => {
     if (connectedDevice) {
+      await bluetoothModule.startStopDevice(connectedDevice.id, false);
       bleManager.disconnect(connectedDevice.id);
     }
   };
@@ -181,12 +168,35 @@ function useBLE(): BluetoothLowEnergyApi {
     setIsScanning(false);
   };
 
-  const handleOnDisconnectPeripheral = (peripheral: string) => {
-    const peripheralDevice = allDevices.get(peripheral);
+  const handleOnDisconnectPeripheral = (peripheral: {
+    peripheral: string;
+    status: number;
+  }) => {
+    const peripheralDevice = allDevices.get(peripheral.peripheral);
     if (peripheralDevice) {
       setConnectedDevice(null);
       if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
     }
+  };
+
+  const renameDevice = async (name: string) => {
+    if (!connectedDevice) return;
+    const hexString = stringToHex(name);
+    const byteData = bluetoothModule.hexToByteArray("22" + hexString);
+    await bleManager.write(
+      connectedDevice.id,
+      bluetoothModule.DEVICE_SERVICE_UUID,
+      bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+      byteData
+    );
+  };
+
+  const stringToHex = (str: string): string => {
+    let hexString = "";
+    for (let i = 0; i < str.length; i++) {
+      hexString += str.charCodeAt(i).toString(16); // Convert each character to its hex value
+    }
+    return hexString;
   };
 
   const handleAndroidPermissions = () => {
@@ -272,6 +282,7 @@ function useBLE(): BluetoothLowEnergyApi {
     checkBluetooth,
     isScanning,
     stopScanPeripherals,
+    renameDevice,
   };
 }
 
