@@ -10,6 +10,7 @@ import { View } from "react-native";
 import { Text } from "~/components/ui/text";
 import useBLE from "~/hooks/useBLE";
 import BluetoothModule from "~/utils/bluetooth-module";
+import IntensityController from "./intensity-controller";
 
 const ControllerTab = () => {
   // hooks
@@ -43,6 +44,8 @@ const ControllerTab = () => {
         <Switch checked={isDeviceOn} onCheckedChange={handleStartStopDevice} />
         <Text className="text-black">ON</Text>
       </View>
+
+      <IntensityController />
     </TabsContent>
   );
 };
