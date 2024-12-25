@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
 import bleManager, { Peripheral } from "react-native-ble-manager";
 
@@ -6,9 +6,6 @@ import * as ExpoDevice from "expo-device";
 
 import BluetoothModule from "~/utils/bluetooth-module";
 import { useBluetoothDeviceModuleStore } from "~/store";
-
-const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
-const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
@@ -35,8 +32,21 @@ function useBLE(): BluetoothLowEnergyApi {
   } = useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
 
+  const heartBeatTimer = useRef<NodeJS.Timeout | null>(null);
+
   const checkBluetooth = async () => {
     await bluetoothModule.checkBluetooth();
+  };
+
+  const sendHeartBeat = (deviceId: Peripheral["id"]) => {
+    heartBeatTimer.current = setTimeout(() => {
+      bleManager.writeWithoutResponse(
+        deviceId,
+        bluetoothModule.DEVICE_SERVICE_UUID,
+        bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+        bluetoothModule.hexToByteArray("e0aa55")
+      );
+    }, 5000);
   };
 
   const requestAndroid31Permissions = async () => {
@@ -101,7 +111,7 @@ function useBLE(): BluetoothLowEnergyApi {
 
   const scanForPeripherals = async () => {
     setIsScanning(true);
-    await bleManager.scan([DEVICE_SERVICE_UUID], 0, false, {});
+    await bleManager.scan([bluetoothModule.DEVICE_SERVICE_UUID], 0, false, {});
   };
 
   const stopScanPeripherals = async () => {
@@ -127,6 +137,10 @@ function useBLE(): BluetoothLowEnergyApi {
   const connectToDevice = async (device: Peripheral) => {
     try {
       await bleManager.connect(device.id);
+      await bluetoothModule.verifyPassword(device.id);
+      await bleManager.retrieveServices(device.id, [
+        bluetoothModule.DEVICE_SERVICE_UUID,
+      ]);
     } catch (error) {
       console.error("Error while connecting", error);
     }
@@ -153,6 +167,7 @@ function useBLE(): BluetoothLowEnergyApi {
     if (peripheralDevice) {
       setConnectedDevice(peripheralDevice);
       await stopScanPeripherals();
+      sendHeartBeat(peripheral);
     }
   };
 
@@ -164,6 +179,7 @@ function useBLE(): BluetoothLowEnergyApi {
     const peripheralDevice = allDevices.get(peripheral);
     if (peripheralDevice) {
       setConnectedDevice(null);
+      if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
     }
   };
 

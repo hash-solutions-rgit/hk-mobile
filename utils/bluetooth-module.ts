@@ -6,8 +6,8 @@ class BluetoothModule {
 
   // Private constructor to prevent instantiation from outside
   private constructor() {}
-  private static DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
-  private static DEVICE_CHARACTERISTIC_UUID =
+  private static _DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+  private static _DEVICE_CHARACTERISTIC_UUID =
     "0000fff6-0000-1000-8000-00805f9b34fb";
 
   private static DEVICE_PASSWORD = "8f383838384f4b3031";
@@ -20,6 +20,14 @@ class BluetoothModule {
     return this.instance;
   }
 
+  get DEVICE_SERVICE_UUID() {
+    return BluetoothModule._DEVICE_SERVICE_UUID;
+  }
+
+  get DEVICE_CHARACTERISTIC_UUID() {
+    return BluetoothModule._DEVICE_CHARACTERISTIC_UUID;
+  }
+
   /**
    * Verify the password of the device
    * @param device
@@ -30,8 +38,8 @@ class BluetoothModule {
     try {
       await BleManager.write(
         peripheralId,
-        BluetoothModule.DEVICE_SERVICE_UUID,
-        BluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+        BluetoothModule._DEVICE_SERVICE_UUID,
+        BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
         byteArray
       );
 
@@ -55,17 +63,12 @@ class BluetoothModule {
   }
 
   async startStopDevice(peripheralId: Peripheral["id"], isDeviceOn: boolean) {
-    await BleManager.retrieveServices(peripheralId, [
-      BluetoothModule.DEVICE_SERVICE_UUID,
-    ]);
-    const verified = await this.verifyPassword(peripheralId);
-    if (!verified) throw Error("failed to verify");
     const byteArray = this.hexToByteArray(isDeviceOn ? "2d0000" : "2d0101");
     try {
       await BleManager.write(
         peripheralId,
-        BluetoothModule.DEVICE_SERVICE_UUID,
-        BluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+        BluetoothModule._DEVICE_SERVICE_UUID,
+        BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
         byteArray
       );
 
