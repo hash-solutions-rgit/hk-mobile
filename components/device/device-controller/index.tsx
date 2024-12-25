@@ -35,7 +35,7 @@ const DeviceController = () => {
     bluetoothModule.startStopDevice(connectedDevice?.id, isDeviceOn);
   }, [bluetoothModule, connectedDevice, isDeviceOn]);
 
-  if (!!connectedDevice) {
+  if (!connectedDevice) {
     return <ScannedDevices />;
   }
 

@@ -22,12 +22,12 @@ const DevicesTab = () => {
 
   return (
     <ScrollView className="flex flex-col gap-y-4 p-5 flex-1 h-full">
-      {/* <Render renderIf={!!connectedDevice}> */}
-      <DeviceController />
-      {/* </Render> */}
-      {/* <Render renderIf={!connectedDevice}>
+      <Render renderIf={!!connectedDevice}>
+        <DeviceController />
+      </Render>
+      <Render renderIf={!connectedDevice}>
         <ScanDevices />
-      </Render> */}
+      </Render>
     </ScrollView>
   );
 };
