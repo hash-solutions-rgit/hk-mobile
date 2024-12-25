@@ -110,6 +110,22 @@ class BluetoothModule {
     await this.enableBluetooth();
   }
 
+  async adjustIntensity(peripheralId: Peripheral["id"], intensity: number) {
+    try {
+      const byteArray = this.encodeHexToByteArray(
+        `2A0102010101030000173b3E00${intensity}000A0064`
+      );
+      await BleManager.write(
+        peripheralId,
+        this.DEVICE_SERVICE_UUID,
+        this.DEVICE_CHARACTERISTIC_UUID,
+        byteArray
+      );
+    } catch (error) {
+      console.error("Failed to adjust intensity", error);
+    }
+  }
+
   //   promptToEnableBluetooth(bleManager: BleManager) {
   //     Alert.alert(
   //       "Enable Bluetooth",

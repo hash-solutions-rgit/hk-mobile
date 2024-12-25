@@ -1,90 +1,96 @@
-import { View, Text, Animated, PanResponder } from "react-native";
-import React, { useState } from "react";
-import { Power } from "~/lib/icons/power";
+import { View, Text } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDeviceStore } from "~/store";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
+import { Minus } from "~/lib/icons/minus";
+import { Plus } from "~/lib/icons/plus";
+import { Gauge } from "~/lib/icons/gauge";
+import useDebounce from "~/hooks/useDebounce";
+import BluetoothModule from "~/utils/bluetooth-module";
+import useBLE from "~/hooks/useBLE";
 
 const IntensityController = () => {
   const { isDeviceOn } = useDeviceStore();
+  const { connectedDevice } = useBLE();
 
-  const [angle] = useState(new Animated.Value(0));
-  const [currentValue, setCurrentValue] = useState(0); // Value based on rotation
+  const bluetoothModule = BluetoothModule.getInstance();
 
-  const centerX = 200; // Adjust these values to the center of your container
-  const centerY = 400; // Adjust these values to the center of your container
+  const [currentValue, setCurrentValue] = useState(0); // Value based on interaction
 
-  const totalDashes = 30; // Number of dashes in the circle
+  const debouncedValue = useDebounce(currentValue, 500); // Debounce the value to prevent rapid updates
 
-  const calculateAngle = (x: number, y: number) => {
-    const dx = x - centerX;
-    const dy = y - centerY;
-    const angleRad = Math.atan2(dy, dx);
-    const newAngle = (angleRad * 180) / Math.PI + 90; // Convert to degrees
-    return newAngle >= 0 ? newAngle : newAngle + 360;
+  const totalDashes = 20; // Number of dashes in the circle
+
+  const incrementValue = () => {
+    setCurrentValue((prev) => (prev < 100 ? prev + 1 : 100));
   };
 
-  const handleTouch = (event: any) => {
-    const { locationX, locationY } = event.nativeEvent;
-    const newAngle = calculateAngle(locationX, locationY);
-
-    // Map the angle to a percentage (0-100)
-    const mappedValue = Math.round((newAngle / 360) * 100);
-    setCurrentValue(mappedValue);
-
-    // Animate rotation
-    Animated.spring(angle, {
-      toValue: newAngle,
-      useNativeDriver: true,
-    }).start();
+  const decrementValue = () => {
+    setCurrentValue((prev) => (prev > 0 ? prev - 1 : 0));
   };
 
-  // Calculate the number of active dashes based on the currentValue
-  const activeDashes = Math.round((currentValue / 100) * totalDashes);
+  const handleAdjustIntensity = useCallback(() => {
+    if (!connectedDevice) return;
+    bluetoothModule.adjustIntensity(connectedDevice?.id, currentValue);
+  }, [bluetoothModule, connectedDevice, currentValue]);
+
+  // Use effect to trigger the start function when debounced value changes
+  useEffect(() => {
+    if (debouncedValue === currentValue) {
+      handleAdjustIntensity();
+    }
+  }, [currentValue, debouncedValue, handleAdjustIntensity]);
 
   return (
-    <View
-      className="relative justify-center items-center w-64 h-64"
-      onStartShouldSetResponder={() => true} // Allow touch gestures
-      onResponderRelease={handleTouch} // Handle touch gestures
-    >
-      {/* Circular Dashes */}
-      {Array.from({ length: totalDashes }).map((_, index) => (
-        <View
-          key={index}
-          className="absolute w-2 h-6"
-          style={{
-            backgroundColor: index < activeDashes ? "#4CAF50" : "#D3D3D3", // Active dashes are highlighted
-            transform: [
-              { rotate: `${index * (360 / totalDashes)}deg` },
-              { translateY: -80 },
-            ],
-            borderRadius: 2,
-          }}
-        />
-      ))}
+    <Card className={cn(!isDeviceOn && "bg-card-foreground/10")}>
+      <CardHeader className="">
+        <CardTitle className="text-black flex items-center gap-x-2 flex-row">
+          <Gauge className="text-black" size={20} />
+          <Text className="text-black">Intensity</Text>
+        </CardTitle>
+        <CardDescription className="text-gray-600">
+          Adjust the intensity of the device
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="py-1 px-2 flex flex-row items-center gap-x-2 justify-center">
+        <View className="flex-row items-center justify-center gap-x-2">
+          <Button onPress={decrementValue} disabled={!isDeviceOn} size="icon">
+            <Minus className="text-white" />
+          </Button>
+          <View className="relative justify-center items-center w-48 h-48">
+            {/* Circular Dashes */}
+            {Array.from({ length: totalDashes }).map((_, index) => (
+              <View
+                key={index}
+                className="absolute w-2 h-6"
+                style={{
+                  backgroundColor: index < currentValue ? "#4CAF50" : "#D3D3D3", // Active dashes are highlighted
+                  transform: [
+                    { rotate: `${index * (360 / totalDashes)}deg` },
+                    { translateY: -60 }, // Adjust for smaller radius
+                  ],
+                  borderRadius: 2,
+                }}
+              />
+            ))}
 
-      {/* Rotating Knob */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#f3f3f3",
-          transform: [
-            {
-              rotate: angle.interpolate({
-                inputRange: [0, 360],
-                outputRange: ["0deg", "360deg"],
-              }),
-            },
-          ],
-        }}
-      >
-        <Power size={28} className="text-white" />
-      </Animated.View>
-    </View>
+            {/* Center Value */}
+            <Text className="absolute text-xl font-bold">{currentValue}</Text>
+          </View>
+          <Button onPress={incrementValue} disabled={!isDeviceOn} size="icon">
+            <Plus className="text-white" />
+          </Button>
+        </View>
+      </CardContent>
+    </Card>
   );
 };
 
