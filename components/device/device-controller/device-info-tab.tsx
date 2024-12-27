@@ -24,15 +24,18 @@ import {
 } from "~/components/ui/dialog";
 import { View } from "react-native";
 import { Input } from "~/components/ui/input";
+import { useBluetoothDeviceModuleStore } from "~/store";
+import BleManger from "react-native-ble-manager";
 
 const DeviceInfoTab = () => {
   const { connectedDevice, disconnectFromDevice, renameDevice } = useBLE();
+  const { setConnectedDevice } = useBluetoothDeviceModuleStore();
 
   // local state
   const [deviceName, setDeviceName] = useState("");
   const [open, setOpen] = useState(false);
 
-  const { isDeviceOn } = useDeviceStore();
+  const { isDeviceOn, toggleIsDeviceOn } = useDeviceStore();
 
   const handleDeviceNameChange = (text: string) => {
     setDeviceName(text);
@@ -88,9 +91,12 @@ const DeviceInfoTab = () => {
             )}
           </Text>
         </CardContent>
-        <CardFooter>
-          <Button size="sm" onPress={disconnectFromDevice}>
-            <Text className="text-white">Disconnect</Text>
+        <CardFooter className="flex flex-row gap-x-2 justify-between">
+          <Button size="sm" onPress={() => disconnectFromDevice()}>
+            <Text className="text-white w-full">Disconnect</Text>
+          </Button>
+          <Button size="sm" onPress={() => disconnectFromDevice()}>
+            <Text className="text-white w-full">Scan New Device</Text>
           </Button>
         </CardFooter>
       </Card>

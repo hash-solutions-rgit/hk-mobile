@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useDeviceStore } from "~/store";
 import {
   Card,
@@ -16,9 +16,12 @@ import { Gauge } from "~/lib/icons/gauge";
 import useDebounce from "~/hooks/useDebounce";
 import BluetoothModule from "~/utils/bluetooth-module";
 import useBLE from "~/hooks/useBLE";
+import { useBluetoothDeviceModuleStore } from "~/store";
+import { modelsFeatures } from "~/constants/models-features";
 
 const IntensityController = () => {
   const { isDeviceOn } = useDeviceStore();
+  const { modelName } = useBluetoothDeviceModuleStore();
   const { connectedDevice } = useBLE();
 
   const bluetoothModule = BluetoothModule.getInstance();
@@ -27,7 +30,10 @@ const IntensityController = () => {
 
   const debouncedValue = useDebounce(currentValue, 500); // Debounce the value to prevent rapid updates
 
-  const totalDashes = 20; // Number of dashes in the circle
+  const totalDashes = useMemo(() => {
+    console.log(modelName, "modelName");
+    return modelsFeatures.get(modelName)?.levels ?? 1;
+  }, [modelName]); // Number of dashes in the circle
 
   const incrementValue = () => {
     setCurrentValue((prev) => (prev < totalDashes ? prev + 1 : totalDashes));
@@ -37,9 +43,9 @@ const IntensityController = () => {
     setCurrentValue((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
-  const handleAdjustIntensity = useCallback(() => {
-    if (!connectedDevice) return;
-    bluetoothModule.adjustIntensity(connectedDevice?.id, currentValue);
+  const handleAdjustIntensity = useCallback(async () => {
+    if (!connectedDevice || !modelName) return;
+    await bluetoothModule.adjustIntensity(connectedDevice?.id, currentValue);
   }, [bluetoothModule, connectedDevice, currentValue]);
 
   // Use effect to trigger the start function when debounced value changes

@@ -7,12 +7,14 @@ import * as ExpoDevice from "expo-device";
 import BluetoothModule from "~/utils/bluetooth-module";
 import { useBluetoothDeviceModuleStore } from "~/store";
 
+import { models } from "~/constants/models-features";
+
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
   scanForPeripherals(): void;
   stopScanPeripherals(): Promise<void>;
   connectToDevice: (deviceId: Peripheral) => Promise<void>;
-  disconnectFromDevice: () => void;
+  disconnectFromDevice: (boolean?: boolean) => void;
   connectedDevice: Peripheral | null;
   allDevices: Map<string, Peripheral>;
   checkBluetooth: () => void;
@@ -30,6 +32,7 @@ function useBLE(): BluetoothLowEnergyApi {
     isScanning,
     setConnectedDevice,
     setAllDevices,
+    setModelName,
   } = useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
 
@@ -131,15 +134,17 @@ function useBLE(): BluetoothLowEnergyApi {
         bluetoothModule.DEVICE_SERVICE_UUID,
       ]);
       await bluetoothModule.verifyPassword(device.id);
+      await bluetoothModule.setModelNumber(device.id);
     } catch (error) {
       console.error("Error while connecting", error);
     }
   };
 
-  const disconnectFromDevice = async () => {
+  const disconnectFromDevice = async (force = false) => {
     if (connectedDevice) {
-      await bluetoothModule.startStopDevice(connectedDevice.id, false);
-      bleManager.disconnect(connectedDevice.id);
+      await bluetoothModule.startStopDevice(connectedDevice.id, force);
+      await bleManager.disconnect(connectedDevice.id);
+      setModelName("");
     }
   };
 
@@ -176,6 +181,19 @@ function useBLE(): BluetoothLowEnergyApi {
     if (peripheralDevice) {
       setConnectedDevice(null);
       if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
+    }
+  };
+
+  const handleOnDidUpdateValueForCharacteristic = (data: {
+    characteristic: string;
+    peripheral: string;
+    service: string;
+    value: number[];
+  }) => {
+    const str = data.value.map((byte) => String.fromCharCode(byte)).join("");
+    if (models.includes(str)) {
+      setModelName(str);
+      bluetoothModule.modelNumber = str;
     }
   };
 
@@ -260,6 +278,9 @@ function useBLE(): BluetoothLowEnergyApi {
       bleManager.onConnectPeripheral(handleOnConnectPeripheral),
       bleManager.onStopScan(handleOnStopScan),
       bleManager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
+      bleManager.onDidUpdateValueForCharacteristic(
+        handleOnDidUpdateValueForCharacteristic
+      ),
     ];
 
     handleAndroidPermissions();

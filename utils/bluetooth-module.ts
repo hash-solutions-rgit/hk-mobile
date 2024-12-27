@@ -9,6 +9,7 @@ class BluetoothModule {
   private static _DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
   private static _DEVICE_CHARACTERISTIC_UUID =
     "0000fff6-0000-1000-8000-00805f9b34fb";
+  private _modelNumber: string | null = null;
 
   private static DEVICE_PASSWORD = "8f383838384f4b3031";
 
@@ -26,6 +27,14 @@ class BluetoothModule {
 
   get DEVICE_CHARACTERISTIC_UUID() {
     return BluetoothModule._DEVICE_CHARACTERISTIC_UUID;
+  }
+
+  set modelNumber(modelNumber: string | null) {
+    this._modelNumber = modelNumber;
+  }
+
+  get modelNumber() {
+    return this._modelNumber;
   }
 
   /**
@@ -112,8 +121,9 @@ class BluetoothModule {
 
   async adjustIntensity(peripheralId: Peripheral["id"], intensity: number) {
     try {
+      const hexIntensity = intensity.toString(16);
       const byteArray = this.encodeHexToByteArray(
-        `2A0102010101030000173b3E00${intensity}000A0064`
+        `2A0102010101030000173b3E00${hexIntensity.padStart(2, "0")}000A0064`
       );
       await BleManager.write(
         peripheralId,
@@ -124,6 +134,27 @@ class BluetoothModule {
     } catch (error) {
       console.error("Failed to adjust intensity", error);
     }
+  }
+
+  async setModelNumber(peripheralId: string) {
+    await BleManager.startNotification(
+      peripheralId,
+      BluetoothModule._DEVICE_SERVICE_UUID,
+      BluetoothModule._DEVICE_CHARACTERISTIC_UUID
+    );
+
+    await BleManager.write(
+      peripheralId,
+      BluetoothModule._DEVICE_SERVICE_UUID,
+      BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
+      this.encodeHexToByteArray("45")
+    );
+
+    await BleManager.stopNotification(
+      peripheralId,
+      BluetoothModule._DEVICE_SERVICE_UUID,
+      BluetoothModule._DEVICE_CHARACTERISTIC_UUID
+    );
   }
 
   //   promptToEnableBluetooth(bleManager: BleManager) {

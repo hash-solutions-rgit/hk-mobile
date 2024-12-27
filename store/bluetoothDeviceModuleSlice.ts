@@ -9,6 +9,8 @@ interface BluetoothDeviceModuleSlice {
   setAllDevices: (allDevices: Map<string, Peripheral>) => void;
   setConnectedDevice: (connectedDevice: Peripheral | null) => void;
   addDevice: (device: Peripheral) => void;
+  modelName: string;
+  setModelName: (name: string) => void;
 }
 
 export const bluetoothDeviceModuleSlice: StateCreator<
@@ -30,5 +32,10 @@ export const bluetoothDeviceModuleSlice: StateCreator<
   },
   setConnectedDevice(connectedDevice) {
     set({ connectedDevice });
+  },
+
+  modelName: "",
+  setModelName(name) {
+    set({ modelName: name });
   },
 });
