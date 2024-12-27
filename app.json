@@ -1,7 +1,8 @@
 {
+  "owner": "hauskorper",
   "expo": {
     "name": "hk-mobile",
-    "slug": "hk-mobile",
+    "slug": "haus-korper",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,7 +18,12 @@
         "foregroundImage": "./assets/images/splash-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.sjana7797.hkmobile"
+      "package": "uk.co.hauskorper.mobile",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -59,8 +65,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "e775590e-56df-4358-9a52-3b1c306d6332"
+        "projectId": "34aa448f-c917-475d-95b9-edbccc046044"
       }
-    }
+    },
+    "owner": "hauskorper"
   }
 }
