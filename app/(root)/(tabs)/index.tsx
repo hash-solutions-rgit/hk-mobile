@@ -1,18 +1,12 @@
 import { View, TouchableOpacity } from "react-native";
-import { useTabsStore } from "~/store";
 import WelcomeBanner from "~/components/home/welcome-banner";
 import ShopNowBanner from "~/components/home/shop-now-banner";
 import { Text } from "~/components/ui/text";
-import { Sparkle } from "~/lib/icons/sparkles";
+import { Sparkles } from "~/lib/icons/sparkles";
 import { BluetoothSearching } from "~/lib/icons/bluetooth-searching";
-import { type SharedValue, withSpring } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 
-type Props = {
-  tabPositionX: SharedValue<number>;
-};
-
-export default function Home({ tabPositionX }: Props) {
+export default function Home() {
   const router = useRouter();
 
   const handleOnPress = () => {
@@ -26,7 +20,7 @@ export default function Home({ tabPositionX }: Props) {
 
       <View className="flex gap-4 border-2 border-gray-200 p-4 rounded-lg bg-gray-50 shadow">
         <View className="bg-primary rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-          <Sparkle className="text-white w-12 h-12" />
+          <Sparkles className="text-white w-12 h-12" />
         </View>
         <Text className="text-2xl font-bold text-center">
           Elevate Your Spaces with Freshness Redefine

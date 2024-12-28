@@ -1,7 +1,6 @@
 {
-  "owner": "hauskorper",
   "expo": {
-    "name": "hk-mobile",
+    "name": "Haus & Korper",
     "slug": "haus-korper",
     "version": "1.0.0",
     "orientation": "portrait",

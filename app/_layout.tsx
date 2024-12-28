@@ -10,6 +10,8 @@ export {
   ErrorBoundary,
 } from "expo-router";
 
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const [appIsReady, setAppIsReady] = React.useState(false);
   const [splashDone, setSplashDone] = React.useState(false);
@@ -31,13 +33,18 @@ export default function RootLayout() {
   }, []);
 
   React.useEffect(() => {
+    if (!appIsReady) return;
     SplashScreen.hide();
     setTimeout(() => {
       setSplashDone(true);
     }, 5000);
-  }, []);
+  }, [appIsReady]);
 
-  if (!appIsReady || !splashDone) {
+  if (!appIsReady) {
+    return null;
+  }
+
+  if (!splashDone && appIsReady) {
     return <CustomSplashScreen />;
   }
 
