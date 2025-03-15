@@ -5,8 +5,6 @@ import Render from "~/components/common/render";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import useBLE from "~/hooks/useBLE";
-import { RefreshCw } from "~/lib/icons/refresh-cw";
-import { cn } from "~/lib/utils";
 
 function ScannedDevices() {
   // hooks

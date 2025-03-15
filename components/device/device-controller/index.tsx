@@ -6,11 +6,12 @@ import { cn } from "~/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import ControllerTab from "./controller-tab";
 import DeviceInfoTab from "./device-info-tab";
+import { useBluetoothDeviceModuleStore } from "~/store";
 
 type TabsValue = "controller" | "info";
 
 const DeviceController = () => {
-  const { connectedDevice } = useBLE();
+  const { connectedDevice } = useBluetoothDeviceModuleStore();
 
   const [value, setValue] = useState<TabsValue>("controller");
 

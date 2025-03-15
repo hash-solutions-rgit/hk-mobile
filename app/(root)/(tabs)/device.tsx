@@ -4,7 +4,6 @@ import useBLE from "~/hooks/useBLE";
 import Render from "~/components/common/render";
 import ScanDevices from "~/components/device/scan-devices";
 import DeviceController from "~/components/device/device-controller";
-import { Loader } from "lucide-react-native";
 
 const DevicesTab = () => {
   const { requestPermissions, connectedDevice, checkBluetooth } = useBLE();

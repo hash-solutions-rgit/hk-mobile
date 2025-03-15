@@ -15,7 +15,7 @@ import useBLE from "~/hooks/useBLE";
 
 const ScanningDevices = () => {
   // hooks
-  const { scanForPeripherals, allDevices } = useBLE();
+  const { scanForPeripherals, isScanning } = useBLE();
 
   const scale = useSharedValue(0);
 
@@ -68,19 +68,20 @@ const ScanningDevices = () => {
     };
   });
 
-  // handlers
-  const handleScanForPeripherals = useCallback(async () => {
-    console.debug("scanning for peripherals");
-    try {
-      await scanForPeripherals();
-    } catch (error) {
-      console.error("Error while scanning for peripherals", error);
-    }
-  }, []);
-
   useEffect(() => {
+    // handlers
+    const handleScanForPeripherals = async () => {
+      console.debug("scanning for peripherals");
+      try {
+        await scanForPeripherals();
+      } catch (error) {
+        console.error("Error while scanning for peripherals", error);
+      }
+    };
+
+    if (isScanning) return;
     handleScanForPeripherals();
-  }, []);
+  }, [isScanning]);
 
   return (
     <View className="flex-1 flex flex-col gap-6">
