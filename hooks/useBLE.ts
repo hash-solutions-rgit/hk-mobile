@@ -39,8 +39,6 @@ function useBLE(): BluetoothLowEnergyApi {
   const bluetoothModule = BluetoothModule.getInstance();
   const { handleLocationPermission, isLocationPermitted } = usePermission();
 
-  const [loading, setLoading] = useState(true);
-
   const heartBeatTimer = useRef<NodeJS.Timeout | null>(null);
 
   const checkBluetooth = async () => {
@@ -297,7 +295,6 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   useEffect(() => {
-    setLoading(true);
     handleAndroidPermissions();
     handleIOSPermissions();
     try {
@@ -311,8 +308,6 @@ function useBLE(): BluetoothLowEnergyApi {
       console.error("unexpected error starting BleManager.", error);
       return;
     }
-
-    setLoading(false);
 
     const listeners = [
       bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
@@ -337,16 +332,6 @@ function useBLE(): BluetoothLowEnergyApi {
       requestPermissions();
     }
   }, [isLocationPermitted, requestPermissions]);
-
-  useEffect(() => {
-    const setBle = async () => {
-      console.log("loading", loading);
-      await checkBluetooth();
-      await scanForPeripherals();
-    };
-    if (loading) return;
-    setBle();
-  }, [loading]);
 
   return {
     scanForPeripherals,
