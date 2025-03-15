@@ -120,7 +120,7 @@ function useBLE(): BluetoothLowEnergyApi {
       await requestBluetoothFallback();
       return true;
     }
-  }, []);
+  }, [handleLocationPermission]);
 
   const isDuplicteDevice = (devices: Peripheral[], nextDevice: Peripheral) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
