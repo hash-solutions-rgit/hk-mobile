@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { PermissionsAndroid, Platform } from "react-native";
+import { useCallback, useEffect, useRef } from "react";
+import { Linking, PermissionsAndroid, Platform } from "react-native";
 import bleManager, { Peripheral } from "react-native-ble-manager";
 
 import * as ExpoDevice from "expo-device";
@@ -8,6 +8,7 @@ import BluetoothModule from "~/utils/bluetooth-module";
 import { useBluetoothDeviceModuleStore } from "~/store";
 
 import { models } from "~/constants/models-features";
+import { usePermission } from "./permission";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
@@ -35,6 +36,7 @@ function useBLE(): BluetoothLowEnergyApi {
     setModelName,
   } = useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
+  const { handleLocationPermission, isLocationPermitted } = usePermission();
 
   const heartBeatTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -87,7 +89,16 @@ function useBLE(): BluetoothLowEnergyApi {
     );
   };
 
-  const requestPermissions = async () => {
+  const requestBluetoothFallback = async () => {
+    if (Platform.OS === "ios") {
+      Linking.openURL("App-Prefs:Bluetooth");
+    } else {
+      Linking.sendIntent("android.settings.BLUETOOTH_SETTINGS");
+    }
+  };
+
+  const requestPermissions = useCallback(async () => {
+    await handleLocationPermission();
     if (Platform.OS === "android") {
       if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
         const granted = await PermissionsAndroid.request(
@@ -106,9 +117,10 @@ function useBLE(): BluetoothLowEnergyApi {
         return isAndroid31PermissionsGranted;
       }
     } else {
+      await requestBluetoothFallback();
       return true;
     }
-  };
+  }, []);
 
   const isDuplicteDevice = (devices: Peripheral[], nextDevice: Peripheral) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
@@ -119,6 +131,7 @@ function useBLE(): BluetoothLowEnergyApi {
       bluetoothModule.DEVICE_SERVICE_UUID,
       "bluetoothModule.DEVICE_SERVICE_UUID"
     );
+
     await bleManager.scan([bluetoothModule.DEVICE_SERVICE_UUID], 0, false, {});
   };
 
@@ -291,6 +304,18 @@ function useBLE(): BluetoothLowEnergyApi {
         listener.remove();
       }
     };
+  }, [
+    handleOnConnectPeripheral,
+    handleOnDidUpdateValueForCharacteristic,
+    handleOnDisconnectPeripheral,
+    handleOnDiscoverPeripheral,
+    handleOnStopScan,
+  ]);
+
+  useEffect(() => {
+    if (isLocationPermitted) {
+      requestPermissions();
+    }
   }, []);
 
   return {

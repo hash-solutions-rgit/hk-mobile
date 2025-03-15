@@ -21,7 +21,12 @@
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_CONNECT"
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE"
       ]
     },
     "web": {
@@ -52,6 +57,16 @@
         {
           "fonts": [
             "node_modules/@expo-google-fonts/nunito-sans/NunitoSans_400Regular.ttf"
+          ]
+        }
+      ],
+      [
+        "react-native-permissions",
+        {
+          "setup_permissions": [
+            "LocationAccuracy",
+            "LocationAlways",
+            "LocationWhenInUse"
           ]
         }
       ]
