@@ -10,6 +10,8 @@ function ScannedDevices() {
   // hooks
   const { allDevices, scanForPeripherals, isScanning } = useBLE();
 
+  console.log("allDevices", allDevices.size);
+
   return (
     <View className="gap-2 flex-col flex">
       <View className="flex-col gap-2 flex sticky top-0">

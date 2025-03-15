@@ -15,7 +15,7 @@ import useBLE from "~/hooks/useBLE";
 
 const ScanningDevices = () => {
   // hooks
-  const { scanForPeripherals, isScanning } = useBLE();
+  const { scanForPeripherals } = useBLE();
 
   const scale = useSharedValue(0);
 
@@ -79,9 +79,8 @@ const ScanningDevices = () => {
       }
     };
 
-    if (isScanning) return;
     handleScanForPeripherals();
-  }, [isScanning]);
+  }, []);
 
   return (
     <View className="flex-1 flex flex-col gap-6">
