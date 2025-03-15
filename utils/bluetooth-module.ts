@@ -110,6 +110,7 @@ class BluetoothModule {
     try {
       console.debug("[enableBluetooth] enabling bluetooth");
       await BleManager.enableBluetooth();
+      console.debug("[enableBluetooth] enabled bluetooth");
     } catch (error) {
       console.error("[enableBluetooth] thrown", error);
     }
