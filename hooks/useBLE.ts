@@ -172,56 +172,52 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   //   handlers
-  const handleOnDiscoverPeripheral = useCallback((peripheral: Peripheral) => {
+  const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
     if (!peripheral.name) {
       peripheral.name = "NO NAME";
     } else {
       addDevice(peripheral);
     }
-  }, []);
+  };
 
-  const handleOnConnectPeripheral = useCallback(
-    async (peripheral: { peripheral: string; status: number }) => {
-      const peripheralDevice = allDevices.get(peripheral.peripheral);
-      if (peripheralDevice) {
-        setConnectedDevice(peripheralDevice);
-        await stopScanPeripherals();
-        sendHeartBeat(peripheral.peripheral);
-      }
-    },
-    [allDevices, sendHeartBeat, setConnectedDevice, stopScanPeripherals]
-  );
+  const handleOnConnectPeripheral = async (peripheral: {
+    peripheral: string;
+    status: number;
+  }) => {
+    const peripheralDevice = allDevices.get(peripheral.peripheral);
+    if (peripheralDevice) {
+      setConnectedDevice(peripheralDevice);
+      await stopScanPeripherals();
+      sendHeartBeat(peripheral.peripheral);
+    }
+  };
 
-  const handleOnStopScan = useCallback(() => {
+  const handleOnStopScan = () => {
     setIsScanning(false);
-  }, [setIsScanning]);
+  };
 
-  const handleOnDisconnectPeripheral = useCallback(
-    (peripheral: { peripheral: string; status: number }) => {
-      const peripheralDevice = allDevices.get(peripheral.peripheral);
-      if (peripheralDevice) {
-        setConnectedDevice(null);
-        if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
-      }
-    },
-    [allDevices, setConnectedDevice]
-  );
-
-  const handleOnDidUpdateValueForCharacteristic = useCallback(
-    (data: {
-      characteristic: string;
-      peripheral: string;
-      service: string;
-      value: number[];
-    }) => {
-      const str = data.value.map((byte) => String.fromCharCode(byte)).join("");
-      if (models.includes(str)) {
-        setModelName(str);
-        bluetoothModule.modelNumber = str;
-      }
-    },
-    []
-  );
+  const handleOnDisconnectPeripheral = (peripheral: {
+    peripheral: string;
+    status: number;
+  }) => {
+    const peripheralDevice = allDevices.get(peripheral.peripheral);
+    if (peripheralDevice) {
+      setConnectedDevice(null);
+      if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
+    }
+  };
+  const handleOnDidUpdateValueForCharacteristic = (data: {
+    characteristic: string;
+    peripheral: string;
+    service: string;
+    value: number[];
+  }) => {
+    const str = data.value.map((byte) => String.fromCharCode(byte)).join("");
+    if (models.includes(str)) {
+      setModelName(str);
+      bluetoothModule.modelNumber = str;
+    }
+  };
 
   const renameDevice = async (name: string) => {
     if (!connectedDevice) return;
@@ -334,13 +330,7 @@ function useBLE(): BluetoothLowEnergyApi {
         listener.remove();
       }
     };
-  }, [
-    handleOnConnectPeripheral,
-    handleOnDidUpdateValueForCharacteristic,
-    handleOnDisconnectPeripheral,
-    handleOnDiscoverPeripheral,
-    handleOnStopScan,
-  ]);
+  }, []);
 
   useEffect(() => {
     if (isLocationPermitted) {
