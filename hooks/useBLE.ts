@@ -110,7 +110,17 @@ function useBLE(): BluetoothLowEnergyApi {
             buttonPositive: "OK",
           }
         );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
+        const grantedBLe = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          {
+            title: "Bluetooth Permission",
+            message: "Bluetooth Low Energy requires Location",
+            buttonPositive: "OK",
+          }
+        );
+        return [granted, grantedBLe].every(
+          (permission) => permission === PermissionsAndroid.RESULTS.GRANTED
+        );
       } else {
         const isAndroid31PermissionsGranted =
           await requestAndroid31Permissions();
