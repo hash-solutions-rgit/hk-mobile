@@ -31,7 +31,7 @@ const IntensityController = () => {
   const debouncedValue = useDebounce(currentValue, 500); // Debounce the value to prevent rapid updates
 
   const totalDashes = useMemo(() => {
-    console.log(modelName, "modelName");
+    console.debug(modelName, "modelName");
     return modelsFeatures.get(modelName)?.levels ?? 1;
   }, [modelName]); // Number of dashes in the circle
 

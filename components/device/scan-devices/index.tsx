@@ -1,16 +1,17 @@
-import React from "react";
-import useBLE from "~/hooks/useBLE";
+import React, { memo } from "react";
 import Render from "~/components/common/render";
-import { View } from "react-native";
+import { View, Text } from "react-native";
 import ScannedDevices from "./scanned-devices";
 import ScanningDevices from "./scanning-devices";
+import { useBluetoothDeviceModuleStore } from "~/store";
 
-const ScanDevices = () => {
+function ScanDevices() {
   // hooks
-  const { allDevices } = useBLE();
+  const { allDevices } = useBluetoothDeviceModuleStore();
 
   return (
     <View className="flex gap-y-4 px-4 py-2 flex-col flex-1">
+      <Text>{allDevices.size}</Text>
       <Render renderIf={!allDevices.size}>
         <ScanningDevices />
       </Render>
@@ -20,6 +21,6 @@ const ScanDevices = () => {
       </Render>
     </View>
   );
-};
+}
 
-export default ScanDevices;
+export default memo(ScanDevices);

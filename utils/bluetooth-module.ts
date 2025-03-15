@@ -54,7 +54,7 @@ class BluetoothModule {
 
       return true;
     } catch (error) {
-      console.log("FAILED TO Verify the device", error);
+      console.debug("FAILED TO Verify the device", error);
       return false;
     }
   }
@@ -83,7 +83,7 @@ class BluetoothModule {
 
       return true;
     } catch (error) {
-      console.log("FAILED TO Start or Stop Device", error);
+      console.debug("FAILED TO Start or Stop Device", error);
       return false;
     }
   }

@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import Animated, {
   Easing,
   interpolate,
@@ -69,9 +69,14 @@ const ScanningDevices = () => {
   });
 
   // handlers
-  const handleScanForPeripherals = () => {
-    scanForPeripherals();
-  };
+  const handleScanForPeripherals = useCallback(async () => {
+    console.debug("scanning for peripherals");
+    try {
+      await scanForPeripherals();
+    } catch (error) {
+      console.error("Error while scanning for peripherals", error);
+    }
+  }, []);
 
   useEffect(() => {
     handleScanForPeripherals();

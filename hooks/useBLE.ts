@@ -13,7 +13,7 @@ import { PERMISSIONS, request, RESULTS } from "react-native-permissions";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
-  scanForPeripherals(): void;
+  scanForPeripherals(): Promise<void>;
   stopScanPeripherals(): Promise<void>;
   connectToDevice: (deviceId: Peripheral) => Promise<void>;
   disconnectFromDevice: (boolean?: boolean) => void;
@@ -121,7 +121,7 @@ function useBLE(): BluetoothLowEnergyApi {
     } else if (Platform.OS === "ios") {
       const result = await request(PERMISSIONS.IOS.BLUETOOTH);
       if (result === RESULTS.GRANTED) {
-        console.log("Bluetooth permission granted");
+        console.debug("Bluetooth permission granted");
         return true;
       }
       return false;
@@ -135,7 +135,7 @@ function useBLE(): BluetoothLowEnergyApi {
 
   const scanForPeripherals = async () => {
     setIsScanning(true);
-    console.log(
+    console.debug(
       bluetoothModule.DEVICE_SERVICE_UUID,
       "bluetoothModule.DEVICE_SERVICE_UUID"
     );
@@ -187,12 +187,12 @@ function useBLE(): BluetoothLowEnergyApi {
         sendHeartBeat(peripheral.peripheral);
       }
     },
-    []
+    [allDevices, sendHeartBeat, setConnectedDevice, stopScanPeripherals]
   );
 
   const handleOnStopScan = useCallback(() => {
     setIsScanning(false);
-  }, []);
+  }, [setIsScanning]);
 
   const handleOnDisconnectPeripheral = useCallback(
     (peripheral: { peripheral: string; status: number }) => {
@@ -202,7 +202,7 @@ function useBLE(): BluetoothLowEnergyApi {
         if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
       }
     },
-    []
+    [allDevices, setConnectedDevice]
   );
 
   const handleOnDidUpdateValueForCharacteristic = useCallback(
@@ -245,7 +245,7 @@ function useBLE(): BluetoothLowEnergyApi {
     if (Platform.OS === "ios") {
       const result = await request(PERMISSIONS.IOS.BLUETOOTH);
       if (result === RESULTS.GRANTED) {
-        console.log("Bluetooth permission granted");
+        console.debug("Bluetooth permission granted");
       } else {
         Alert.alert(
           "Permission Denied",
