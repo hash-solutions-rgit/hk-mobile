@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
 import bleManager, { Peripheral } from "react-native-ble-manager";
 
@@ -98,7 +98,7 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const requestPermissions = useCallback(async () => {
+  const requestPermissions = async () => {
     await handleLocationPermission();
     if (Platform.OS === "android") {
       if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
@@ -128,7 +128,7 @@ function useBLE(): BluetoothLowEnergyApi {
     } else {
       return true;
     }
-  }, []);
+  };
 
   const isDuplicteDevice = (devices: Peripheral[], nextDevice: Peripheral) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
@@ -331,7 +331,7 @@ function useBLE(): BluetoothLowEnergyApi {
     if (isLocationPermitted) {
       requestPermissions();
     }
-  }, [isLocationPermitted, requestPermissions]);
+  }, [isLocationPermitted]);
 
   return {
     scanForPeripherals,
