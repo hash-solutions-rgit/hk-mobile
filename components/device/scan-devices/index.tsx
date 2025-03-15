@@ -9,8 +9,6 @@ function ScanDevices() {
   // hooks
   const { allDevices } = useBluetoothDeviceModuleStore();
 
-  console.log("allDevices", allDevices.size);
-
   return (
     <View className="flex gap-y-4 px-4 py-2 flex-col flex-1">
       <Text>{allDevices.size}</Text>
@@ -25,4 +23,4 @@ function ScanDevices() {
   );
 }
 
-export default memo(ScanDevices);
+export default ScanDevices;

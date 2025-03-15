@@ -25,6 +25,8 @@ const DevicesTab = () => {
       }
     };
 
+    if (isPermissionsChecked) return;
+
     checkBluetoothPermissions();
   }, [isPermissionsChecked]);
 

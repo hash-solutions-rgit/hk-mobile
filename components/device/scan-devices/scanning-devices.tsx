@@ -79,9 +79,8 @@ const ScanningDevices = () => {
   }, []);
 
   useEffect(() => {
-    console.log("allDevices.size", allDevices.size);
-    if (!allDevices.size) handleScanForPeripherals();
-  }, [allDevices.size]);
+    handleScanForPeripherals();
+  }, []);
 
   return (
     <View className="flex-1 flex flex-col gap-6">
