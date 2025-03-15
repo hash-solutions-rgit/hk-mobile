@@ -3,18 +3,17 @@ import { TabsContent } from "~/components/ui/tabs";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { Power } from "~/lib/icons/power";
-import { useDeviceStore } from "~/store";
+import { useBluetoothDeviceModuleStore, useDeviceStore } from "~/store";
 import * as Haptics from "expo-haptics";
 import { Switch } from "~/components/ui/switch";
 import { View } from "react-native";
 import { Text } from "~/components/ui/text";
-import useBLE from "~/hooks/useBLE";
 import BluetoothModule from "~/utils/bluetooth-module";
 import IntensityController from "./intensity-controller";
 
 const ControllerTab = () => {
   // hooks
-  const { connectedDevice } = useBLE();
+  const { connectedDevice } = useBluetoothDeviceModuleStore();
   const { toggleIsDeviceOn, isDeviceOn } = useDeviceStore();
 
   const bluetoothModule = BluetoothModule.getInstance();

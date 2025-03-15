@@ -14,22 +14,16 @@ import { Text } from "~/components/ui/text";
 import Pencil from "~/lib/icons/pencil";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
 import { View } from "react-native";
 import { Input } from "~/components/ui/input";
-import { useBluetoothDeviceModuleStore } from "~/store";
-import BleManger from "react-native-ble-manager";
 
 const DeviceInfoTab = () => {
   const { connectedDevice, disconnectFromDevice, renameDevice } = useBLE();
-  const { setConnectedDevice } = useBluetoothDeviceModuleStore();
 
   // local state
   const [deviceName, setDeviceName] = useState("");

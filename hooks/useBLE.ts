@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
 import bleManager, { Peripheral } from "react-native-ble-manager";
 
@@ -19,7 +19,7 @@ interface BluetoothLowEnergyApi {
   disconnectFromDevice: (boolean?: boolean) => void;
   connectedDevice: Peripheral | null;
   allDevices: Map<string, Peripheral>;
-  checkBluetooth: () => void;
+  checkBluetooth: () => Promise<void>;
   renameDevice: (name: string) => void;
   isScanning: boolean;
 }
@@ -38,6 +38,8 @@ function useBLE(): BluetoothLowEnergyApi {
   } = useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
   const { handleLocationPermission, isLocationPermitted } = usePermission();
+
+  const [loading, setLoading] = useState(true);
 
   const heartBeatTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -299,6 +301,7 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   useEffect(() => {
+    setLoading(true);
     handleAndroidPermissions();
     handleIOSPermissions();
     try {
@@ -312,6 +315,8 @@ function useBLE(): BluetoothLowEnergyApi {
       console.error("unexpected error starting BleManager.", error);
       return;
     }
+
+    setLoading(false);
 
     const listeners = [
       bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
@@ -342,6 +347,16 @@ function useBLE(): BluetoothLowEnergyApi {
       requestPermissions();
     }
   }, [isLocationPermitted, requestPermissions]);
+
+  useEffect(() => {
+    const setBle = async () => {
+      console.log("loading", loading);
+      await checkBluetooth();
+      await scanForPeripherals();
+    };
+    if (loading) return;
+    setBle();
+  }, [loading]);
 
   return {
     scanForPeripherals,
