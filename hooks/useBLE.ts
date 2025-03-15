@@ -123,10 +123,11 @@ function useBLE(): BluetoothLowEnergyApi {
         console.log("Bluetooth permission granted");
         return true;
       }
+      return false;
     } else {
       return true;
     }
-  }, [handleLocationPermission]);
+  }, []);
 
   const isDuplicteDevice = (devices: Peripheral[], nextDevice: Peripheral) =>
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
@@ -168,16 +169,13 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   //   handlers
-  const handleOnDiscoverPeripheral = useCallback(
-    (peripheral: Peripheral) => {
-      if (!peripheral.name) {
-        peripheral.name = "NO NAME";
-      } else {
-        addDevice(peripheral);
-      }
-    },
-    [addDevice]
-  );
+  const handleOnDiscoverPeripheral = useCallback((peripheral: Peripheral) => {
+    if (!peripheral.name) {
+      peripheral.name = "NO NAME";
+    } else {
+      addDevice(peripheral);
+    }
+  }, []);
 
   const handleOnConnectPeripheral = useCallback(
     async (peripheral: { peripheral: string; status: number }) => {
@@ -188,12 +186,12 @@ function useBLE(): BluetoothLowEnergyApi {
         sendHeartBeat(peripheral.peripheral);
       }
     },
-    [allDevices, sendHeartBeat, setConnectedDevice, stopScanPeripherals]
+    []
   );
 
   const handleOnStopScan = useCallback(() => {
     setIsScanning(false);
-  }, [setIsScanning]);
+  }, []);
 
   const handleOnDisconnectPeripheral = useCallback(
     (peripheral: { peripheral: string; status: number }) => {
@@ -203,7 +201,7 @@ function useBLE(): BluetoothLowEnergyApi {
         if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
       }
     },
-    [allDevices, setConnectedDevice]
+    []
   );
 
   const handleOnDidUpdateValueForCharacteristic = useCallback(
@@ -219,7 +217,7 @@ function useBLE(): BluetoothLowEnergyApi {
         bluetoothModule.modelNumber = str;
       }
     },
-    [bluetoothModule, setModelName]
+    []
   );
 
   const renameDevice = async (name: string) => {
@@ -302,7 +300,6 @@ function useBLE(): BluetoothLowEnergyApi {
   useEffect(() => {
     handleAndroidPermissions();
     handleIOSPermissions();
-
     try {
       bleManager
         .start({ showAlert: false })
@@ -343,7 +340,7 @@ function useBLE(): BluetoothLowEnergyApi {
     if (isLocationPermitted) {
       requestPermissions();
     }
-  }, []);
+  }, [isLocationPermitted, requestPermissions]);
 
   return {
     scanForPeripherals,
