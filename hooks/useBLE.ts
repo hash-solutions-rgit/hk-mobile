@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Linking, PermissionsAndroid, Platform } from "react-native";
+import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
 import bleManager, { Peripheral } from "react-native-ble-manager";
 
 import * as ExpoDevice from "expo-device";
@@ -9,6 +9,7 @@ import { useBluetoothDeviceModuleStore } from "~/store";
 
 import { models } from "~/constants/models-features";
 import { usePermission } from "./permission";
+import { PERMISSIONS, request, RESULTS } from "react-native-permissions";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
@@ -116,8 +117,13 @@ function useBLE(): BluetoothLowEnergyApi {
 
         return isAndroid31PermissionsGranted;
       }
+    } else if (Platform.OS === "ios") {
+      const result = await request(PERMISSIONS.IOS.BLUETOOTH);
+      if (result === RESULTS.GRANTED) {
+        console.log("Bluetooth permission granted");
+        return true;
+      }
     } else {
-      await requestBluetoothFallback();
       return true;
     }
   }, [handleLocationPermission]);
@@ -162,53 +168,59 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   //   handlers
-  const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
-    if (!peripheral.name) {
-      peripheral.name = "NO NAME";
-    } else {
-      addDevice(peripheral);
-    }
-  };
+  const handleOnDiscoverPeripheral = useCallback(
+    (peripheral: Peripheral) => {
+      if (!peripheral.name) {
+        peripheral.name = "NO NAME";
+      } else {
+        addDevice(peripheral);
+      }
+    },
+    [addDevice]
+  );
 
-  const handleOnConnectPeripheral = async (peripheral: {
-    peripheral: string;
-    status: number;
-  }) => {
-    const peripheralDevice = allDevices.get(peripheral.peripheral);
-    if (peripheralDevice) {
-      setConnectedDevice(peripheralDevice);
-      await stopScanPeripherals();
-      sendHeartBeat(peripheral.peripheral);
-    }
-  };
+  const handleOnConnectPeripheral = useCallback(
+    async (peripheral: { peripheral: string; status: number }) => {
+      const peripheralDevice = allDevices.get(peripheral.peripheral);
+      if (peripheralDevice) {
+        setConnectedDevice(peripheralDevice);
+        await stopScanPeripherals();
+        sendHeartBeat(peripheral.peripheral);
+      }
+    },
+    [allDevices, sendHeartBeat, setConnectedDevice, stopScanPeripherals]
+  );
 
-  const handleOnStopScan = () => {
+  const handleOnStopScan = useCallback(() => {
     setIsScanning(false);
-  };
+  }, [setIsScanning]);
 
-  const handleOnDisconnectPeripheral = (peripheral: {
-    peripheral: string;
-    status: number;
-  }) => {
-    const peripheralDevice = allDevices.get(peripheral.peripheral);
-    if (peripheralDevice) {
-      setConnectedDevice(null);
-      if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
-    }
-  };
+  const handleOnDisconnectPeripheral = useCallback(
+    (peripheral: { peripheral: string; status: number }) => {
+      const peripheralDevice = allDevices.get(peripheral.peripheral);
+      if (peripheralDevice) {
+        setConnectedDevice(null);
+        if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
+      }
+    },
+    [allDevices, setConnectedDevice]
+  );
 
-  const handleOnDidUpdateValueForCharacteristic = (data: {
-    characteristic: string;
-    peripheral: string;
-    service: string;
-    value: number[];
-  }) => {
-    const str = data.value.map((byte) => String.fromCharCode(byte)).join("");
-    if (models.includes(str)) {
-      setModelName(str);
-      bluetoothModule.modelNumber = str;
-    }
-  };
+  const handleOnDidUpdateValueForCharacteristic = useCallback(
+    (data: {
+      characteristic: string;
+      peripheral: string;
+      service: string;
+      value: number[];
+    }) => {
+      const str = data.value.map((byte) => String.fromCharCode(byte)).join("");
+      if (models.includes(str)) {
+        setModelName(str);
+        bluetoothModule.modelNumber = str;
+      }
+    },
+    [bluetoothModule, setModelName]
+  );
 
   const renameDevice = async (name: string) => {
     if (!connectedDevice) return;
@@ -228,6 +240,20 @@ function useBLE(): BluetoothLowEnergyApi {
       hexString += str.charCodeAt(i).toString(16); // Convert each character to its hex value
     }
     return hexString;
+  };
+
+  const handleIOSPermissions = async () => {
+    if (Platform.OS === "ios") {
+      const result = await request(PERMISSIONS.IOS.BLUETOOTH);
+      if (result === RESULTS.GRANTED) {
+        console.log("Bluetooth permission granted");
+      } else {
+        Alert.alert(
+          "Permission Denied",
+          "Bluetooth is required for device connectivity."
+        );
+      }
+    }
   };
 
   const handleAndroidPermissions = () => {
@@ -274,6 +300,9 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   useEffect(() => {
+    handleAndroidPermissions();
+    handleIOSPermissions();
+
     try {
       bleManager
         .start({ showAlert: false })
@@ -295,8 +324,6 @@ function useBLE(): BluetoothLowEnergyApi {
         handleOnDidUpdateValueForCharacteristic
       ),
     ];
-
-    handleAndroidPermissions();
 
     return () => {
       console.debug("[app] main component unmounting. Removing listeners...");

@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uk.co.hauskorper.mobile"
+      "bundleIdentifier": "uk.co.hauskorper.mobile",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "We need Bluetooth access to connect to your device.",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with BLE devices."
+      }
     },
     "android": {
       "adaptiveIcon": {
