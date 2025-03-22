@@ -171,6 +171,7 @@ function useBLE(): BluetoothLowEnergyApi {
 
   //   handlers
   const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
+    console.log("peripheral", peripheral);
     if (!peripheral.name) {
       peripheral.name = "NO NAME";
     } else {
