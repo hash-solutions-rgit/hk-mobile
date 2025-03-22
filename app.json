@@ -13,7 +13,8 @@
       "bundleIdentifier": "uk.co.hauskorper.mobile",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "We need Bluetooth access to connect to your device.",
-        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with BLE devices."
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with BLE devices.",
+        "NSLocationWhenInUseUsageDescription": "We need location access to connect to your device."
       }
     },
     "android": {
