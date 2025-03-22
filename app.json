@@ -67,7 +67,8 @@
       [
         "react-native-permissions",
         {
-          "setup_permissions": [
+          "iosPermissions": [
+            "Bluetooth",
             "LocationAccuracy",
             "LocationAlways",
             "LocationWhenInUse"
