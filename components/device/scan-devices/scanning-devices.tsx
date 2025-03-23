@@ -11,11 +11,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { BluetoothSearching } from "~/lib/icons/bluetooth-searching";
+import useBLE from "~/hooks/useBLE";
 
 const ScanningDevices = () => {
   const scale = useSharedValue(0);
 
   const rangeScale = useSharedValue(1);
+
+  const { scanForPeripherals } = useBLE();
 
   const showAnimation = useSharedValue(0);
   showAnimation.value = withRepeat(
@@ -69,7 +72,7 @@ const ScanningDevices = () => {
     const handleScanForPeripherals = async () => {
       console.debug("scanning for peripherals");
       try {
-        // await scanForPeripherals();
+        await scanForPeripherals();
       } catch (error) {
         console.error("Error while scanning for peripherals", error);
       }

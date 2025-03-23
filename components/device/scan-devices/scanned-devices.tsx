@@ -5,11 +5,10 @@ import Render from "~/components/common/render";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import useBLE from "~/hooks/useBLE";
-import { useBluetoothDeviceModuleStore } from "~/store";
 
 function ScannedDevices() {
   // hooks
-  const { allDevices, isScanning } = useBluetoothDeviceModuleStore();
+  const { allDevices, isScanning, scanForPeripherals } = useBLE();
 
   return (
     <View className="gap-2 flex-col flex">
@@ -25,7 +24,7 @@ function ScannedDevices() {
             className="shrink-0"
             size="sm"
             variant="link"
-            // onPress={scanForPeripherals}
+            onPress={scanForPeripherals}
           >
             <Render renderIf={!isScanning}>
               <Text>Scan Now</Text>
