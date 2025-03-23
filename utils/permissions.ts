@@ -181,6 +181,8 @@ export const openBluetoothSettings = () => {
 
 export async function enableBluetooth() {
   //before scaning try to enable bluetooth if not enabled already
+  const state = await BleManager.checkState();
+  if (state === BleState.On) return true;
   if (
     Platform.OS === "android" &&
     (await BleManager.checkState()) === BleState.Off

@@ -40,12 +40,12 @@ const BluetoothContext = createContext(initialBluetoothContext);
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
-const SECONDS_TO_SCAN = 6;
-const SERVICE_UUIDS: string[] = [];
+const SECONDS_TO_SCAN = 0;
 const ALLOW_DUPLICATE = false;
 const MAX_CONNECT_WAITING_PERIOD = 30000;
 const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
 const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
+const SERVICE_UUIDS: string[] = [DEVICE_SERVICE_UUID];
 
 const DEVICE_PASSWORD = "8f383838384f4b3031";
 
@@ -61,12 +61,14 @@ function BluetoothLayout({ children }: Props) {
 
   const allDevices = useMemo(() => Object.values(devicesMap), [devicesMap]);
 
-  const scanNearbyDevices = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
+  const scanNearbyDevices = async (): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      console.log("scanNearbyDevices");
       let listeners: EmitterSubscription[] = [];
 
       const onBleManagerDiscoverPeripheral = (peripheral: Peripheral) => {
         if (peripheral.id && peripheral.name) {
+          console.log("Device Discovered", peripheral);
           setDevicesMap((prev) => ({ ...prev, [peripheral.id]: peripheral }));
         }
       };
@@ -89,8 +91,6 @@ function BluetoothLayout({ children }: Props) {
             onBleManagerStopScan
           ),
         ];
-
-        BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN, ALLOW_DUPLICATE);
       } catch (error) {
         reject(
           new Error(error instanceof Error ? error.message : (error as string))
@@ -246,8 +246,24 @@ function BluetoothLayout({ children }: Props) {
 
   const handleEnableBluetooth = async () => {
     const result = await enableBluetooth();
+    console.log("handleEnableBluetooth", result);
     if (result) {
       setIsBluetoothEnabled(result);
+    }
+  };
+
+  const handleScanForPeripherals = async () => {
+    console.log("scanning for peripherals");
+    try {
+      await scanNearbyDevices();
+      await BleManager.scan(
+        SERVICE_UUIDS,
+        SECONDS_TO_SCAN,
+        ALLOW_DUPLICATE,
+        {}
+      );
+    } catch (error) {
+      console.error("Error while scanning for peripherals", error);
     }
   };
 
@@ -269,11 +285,18 @@ function BluetoothLayout({ children }: Props) {
   }, [isBluetoothPermitted]);
 
   useEffect(() => {
+    console.log("isBluetoothEnabled", isBluetoothEnabled);
+    console.log("isBluetoothPermitted", isBluetoothPermitted);
     if (!isBluetoothEnabled || !isBluetoothPermitted) {
       return;
     }
-    void scanNearbyDevices();
-  }, [isBluetoothPermitted, isLocationPermitted, isBluetoothEnabled]);
+    void handleScanForPeripherals();
+  }, [
+    isBluetoothPermitted,
+    isLocationPermitted,
+    isBluetoothEnabled,
+    handleScanForPeripherals,
+  ]);
 
   return (
     <BluetoothContext.Provider
