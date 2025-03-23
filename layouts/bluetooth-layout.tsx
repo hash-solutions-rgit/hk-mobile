@@ -269,7 +269,7 @@ function BluetoothLayout({ children }: Props) {
   }, [isBluetoothPermitted]);
 
   useEffect(() => {
-    if (!isBluetoothEnabled || !isLocationPermitted || !isBluetoothPermitted) {
+    if (!isBluetoothEnabled || !isBluetoothPermitted) {
       return;
     }
     void scanNearbyDevices();
