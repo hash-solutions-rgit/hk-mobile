@@ -17,7 +17,7 @@ export const usePermission = () => {
         request(PERMISSIONS.IOS.LOCATION_ALWAYS),
         request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE),
       ]);
-      let resultAlways = locationResult[0];
+      let resultAlways = locationResult?.[0];
       let resultWhenInUse =
         locationResult.length > 1 ? locationResult[1] : null;
       const isResultAlwaysDenied = () => {

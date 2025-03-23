@@ -7,11 +7,12 @@ import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import ControllerTab from "./controller-tab";
 import DeviceInfoTab from "./device-info-tab";
 import { useBluetoothDeviceModuleStore } from "~/store";
+import { useBluetooth } from "~/layouts/bluetooth-layout";
 
 type TabsValue = "controller" | "info";
 
 const DeviceController = () => {
-  const { connectedDevice } = useBluetoothDeviceModuleStore();
+  const { connectedDevice } = useBluetooth();
 
   const [value, setValue] = useState<TabsValue>("controller");
 

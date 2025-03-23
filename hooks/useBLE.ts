@@ -99,7 +99,7 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   const requestPermissions = async () => {
-    await handleLocationPermission();
+    // await handleLocationPermission();
     if (Platform.OS === "android") {
       if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
         const granted = await PermissionsAndroid.request(

@@ -42,22 +42,6 @@ class BluetoothModule {
    * @param device
    * @returns true if the password is correct, false otherwise
    */
-  async verifyPassword(peripheralId: Peripheral["id"]) {
-    const byteArray = this.hexToByteArray(BluetoothModule.DEVICE_PASSWORD);
-    try {
-      await BleManager.write(
-        peripheralId,
-        BluetoothModule._DEVICE_SERVICE_UUID,
-        BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
-        byteArray
-      );
-
-      return true;
-    } catch (error) {
-      console.debug("FAILED TO Verify the device", error);
-      return false;
-    }
-  }
 
   hexToByteArray(hex: string): number[] {
     if (hex.length % 2 !== 0) {

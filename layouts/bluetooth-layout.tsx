@@ -1,73 +1,297 @@
-import React from "react";
-import { Platform } from "react-native";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  EmitterSubscription,
+  NativeEventEmitter,
+  NativeModules,
+} from "react-native";
+import BleManager, { Peripheral } from "react-native-ble-manager";
+import {
+  handleLocationPermission as handleLocationPermissionService,
+  handleBluetoothPermission as handleBluetoothPermissionService,
+  enableBluetooth,
+} from "~/utils/permissions";
 
 type Props = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
+interface IBluetoothContext {
+  isBluetoothPermitted: boolean;
+  isLocationPermitted: boolean;
+  isBluetoothEnabled: boolean;
+  allDevices: Peripheral[];
+  devicesMap: Record<string, Peripheral>;
+  connect: (deviceId: string) => Promise<boolean>;
+  connectedDevice: Peripheral | null;
+}
+
+const initialBluetoothContext: IBluetoothContext = {
+  isBluetoothPermitted: false,
+  isLocationPermitted: false,
+  isBluetoothEnabled: false,
+  allDevices: [],
+  devicesMap: {},
+  connectedDevice: null,
+  connect: (deviceId: string) => Promise.resolve(false),
+};
+const BluetoothContext = createContext(initialBluetoothContext);
+
+const BleManagerModule = NativeModules.BleManager;
+const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
+
+const SECONDS_TO_SCAN = 6;
+const SERVICE_UUIDS: string[] = [];
+const ALLOW_DUPLICATE = false;
+const MAX_CONNECT_WAITING_PERIOD = 30000;
+const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+const DEVICE_CHARACTERISTIC_UUID = "0000fff6-0000-1000-8000-00805f9b34fb";
+
+const DEVICE_PASSWORD = "8f383838384f4b3031";
+
 function BluetoothLayout({ children }: Props) {
-  const askBluetoothPermissions = async () => {
-    if (Platform.OS === "ios") {
-      //ask for bluetooth permission for IOS
-      const result = await request(PERMISSIONS.IOS.BLUETOOTH_PERIPHERAL);
-      if (result !== RESULTS.GRANTED) {
-        //either permission is not granted or it's unavailable.
-        if (result === RESULTS.UNAVAILABLE) {
-          //if bluetooth is off, prompt user to enable the bluetooth manually.
-          return { type: EPermissionTypes.enableBluetooth, value: false };
-        } else {
-          //if user denied for bluetooth permission, prompt them to enable it from settigs later.
-          return { type: EPermissionTypes.bluetoothPermission, value: false };
+  const [isBluetoothPermitted, setIsBluetoothPermitted] = useState(false);
+  const [isLocationPermitted, setIsLocationPermitted] = useState(false);
+  const [isBluetoothEnabled, setIsBluetoothEnabled] = useState(false);
+  const [devicesMap, setDevicesMap] = useState<Record<string, Peripheral>>({});
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectedDevice, setConnectedDevice] = useState<Peripheral | null>(
+    null
+  );
+
+  const allDevices = useMemo(() => Object.values(devicesMap), [devicesMap]);
+
+  const scanNearbyDevices = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      let listeners: EmitterSubscription[] = [];
+
+      const onBleManagerDiscoverPeripheral = (peripheral: Peripheral) => {
+        if (peripheral.id && peripheral.name) {
+          setDevicesMap((prev) => ({ ...prev, [peripheral.id]: peripheral }));
         }
+      };
+
+      const onBleManagerStopScan = () => {
+        for (const listener of listeners) {
+          listener.remove();
+        }
+        resolve();
+      };
+
+      try {
+        listeners = [
+          bleManagerEmitter.addListener(
+            "BleManagerDiscoverPeripheral",
+            onBleManagerDiscoverPeripheral
+          ),
+          bleManagerEmitter.addListener(
+            "BleManagerStopScan",
+            onBleManagerStopScan
+          ),
+        ];
+
+        BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN, ALLOW_DUPLICATE);
+      } catch (error) {
+        reject(
+          new Error(error instanceof Error ? error.message : (error as string))
+        );
       }
-      //bluetooth permission has been granted successfully
-      return { type: EPermissionTypes.bluetoothPermission, value: true };
-    } else {
-      if (getPlatformVersion() > 30) {
-        //ask for bluetooth permission for Android for version >= 12.
-        if (
-          (await request(PERMISSIONS.ANDROID.BLUETOOTH_SCAN)) !==
-          RESULTS.GRANTED
-        ) {
-          return { type: EPermissionTypes.bluetoothPermission, value: false };
-        }
-        console.info("BLUETOOTH_SCAN permission allowed");
-        if (
-          (await request(PERMISSIONS.ANDROID.BLUETOOTH_CONNECT)) !==
-          RESULTS.GRANTED
-        ) {
-          return { type: EPermissionTypes.bluetoothPermission, value: false };
-        }
-        console.info("BLUETOOTH_CONNECT permission allowed");
-        if (
-          (await request(PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE)) !==
-          RESULTS.GRANTED
-        ) {
-          return { type: EPermissionTypes.bluetoothPermission, value: false };
-        }
-        console.info("BLUETOOTH_ADVERTISE permission allowed");
-        return { type: EPermissionTypes.bluetoothPermission, value: true };
+    });
+  };
+
+  const isDeviceConnected = async (deviceId: string) => {
+    return await BleManager.isPeripheralConnected(deviceId, []);
+  };
+
+  const connect = (deviceId: string): Promise<boolean> => {
+    let connectedDeviceId: string | null = null;
+    return new Promise<boolean>(async (resolve, reject) => {
+      let failedToConnectTimer: NodeJS.Timeout;
+
+      //For android always ensure to enable the bluetooth again before connecting.
+      const isEnabled = await enableBluetooth();
+      if (!isEnabled) {
+        //if blutooth is somehow off, first prompt user to turn on the bluetooth
+        return resolve(false);
+      }
+
+      //before connecting, ensure if app is already connected to device or not.
+      let isConnected = await isDeviceConnected(deviceId);
+
+      if (!isConnected) {
+        //if not connected already, set the timer such that after some time connection process automatically stops if its failed to connect.
+        failedToConnectTimer = setTimeout(() => {
+          return resolve(false);
+        }, MAX_CONNECT_WAITING_PERIOD);
+
+        await BleManager.connect(deviceId).then(() => {
+          //if connected successfully, stop the previous set timer.
+          clearTimeout(failedToConnectTimer);
+        });
+        isConnected = await isDeviceConnected(deviceId);
+      }
+
+      if (!isConnected) {
+        //now if its not connected somehow, just close the process.
+        return resolve(false);
       } else {
-        //for android version < 12, no need of runtime permissions.
-        return { type: EPermissionTypes.bluetoothPermission, value: true };
+        //Connection success
+        connectedDeviceId = deviceId;
+
+        //get the services and characteristics information for the connected hardware device.
+        const peripheralInformation =
+          await BleManager.retrieveServices(deviceId);
+
+        /**
+         * Check for supported services and characteristics from device info
+         */
+        const deviceSupportedServices = (
+          peripheralInformation.services || []
+        ).map((item) => item?.uuid?.toUpperCase());
+        const deviceSupportedCharacteristics = (
+          peripheralInformation.characteristics || []
+        ).map((_char) => _char.characteristic.toUpperCase());
+        if (
+          !deviceSupportedServices.includes(DEVICE_SERVICE_UUID) ||
+          !deviceSupportedCharacteristics.includes(DEVICE_CHARACTERISTIC_UUID)
+        ) {
+          //if required service ID and Char ID is not supported by hardware, close the connection.
+          isConnected = false;
+          await BleManager.disconnect(connectedDeviceId);
+          return reject(
+            "Connected device does not have required service and characteristic."
+          );
+        }
+
+        await BleManager.startNotification(
+          deviceId,
+          DEVICE_SERVICE_UUID,
+          DEVICE_CHARACTERISTIC_UUID
+        )
+          .then((response) => {
+            console.log(
+              "Started notification successfully on ",
+              DEVICE_CHARACTERISTIC_UUID
+            );
+          })
+          .catch(async () => {
+            isConnected = false;
+            if (!connectedDeviceId) {
+              return reject(
+                "Failed to start notification on required service and characteristic."
+              );
+            }
+            await BleManager.disconnect(connectedDeviceId);
+            return reject(
+              "Failed to start notification on required service and characteristic."
+            );
+          });
+
+        let disconnectListener = bleManagerEmitter.addListener(
+          "BleManagerDisconnectPeripheral",
+          async () => {
+            //addd the code to execute after hardware disconnects.
+            if (connectedDeviceId) {
+              await BleManager.disconnect(connectedDeviceId);
+            }
+            disconnectListener.remove();
+          }
+        );
+
+        return resolve(isConnected);
       }
+    });
+  };
+
+  const hexToByteArray = (hex: string): number[] => {
+    if (hex.length % 2 !== 0) {
+      throw new Error("Invalid hexadecimal string");
+    }
+
+    const byteArray: number[] = [];
+    for (let i = 0; i < hex.length; i += 2) {
+      byteArray.push(parseInt(hex.substr(i, 2), 16));
+    }
+    return byteArray;
+  };
+
+  const verifyPassword = async (peripheralId: Peripheral["id"]) => {
+    const byteArray = hexToByteArray(DEVICE_PASSWORD);
+    try {
+      await BleManager.write(
+        peripheralId,
+        DEVICE_SERVICE_UUID,
+        DEVICE_CHARACTERISTIC_UUID,
+        byteArray
+      );
+
+      return true;
+    } catch (error) {
+      console.debug("FAILED TO Verify the device", error);
+      return false;
     }
   };
 
   const handleBluetoothPermission = async () => {
-    const isPermissionAllowed = await askBluetoothPermissions();
-    if (isPermissionAllowed.value) {
-      //Bluetooth permission allowed successfully
-    } else {
-      //Bluetooth permission denied. Show Bluetooth modal warning
-      if (isPermissionAllowed.type === EPermissionTypes.bluetoothPermission) {
-        //if user denied for bluetooth permission, prompt them to enable it from settigs later.
-      } else {
-        //For ios, if bluetooth is off, prompt user to enable the bluetooth manually by themselves.
-      }
+    const result = await handleBluetoothPermissionService();
+    if (result) {
+      setIsBluetoothPermitted(result);
     }
   };
-  return <>{children}</>;
+
+  const handleLocationPermission = async () => {
+    const result = await handleLocationPermissionService();
+    setIsLocationPermitted(result);
+  };
+
+  const handleEnableBluetooth = async () => {
+    const result = await enableBluetooth();
+    if (result) {
+      setIsBluetoothEnabled(result);
+    }
+  };
+
+  useEffect(() => {
+    if (isLocationPermitted) {
+      void handleBluetoothPermission();
+      return;
+    }
+
+    void handleLocationPermission();
+  }, [isLocationPermitted]);
+
+  useEffect(() => {
+    if (isBluetoothPermitted) {
+      void handleEnableBluetooth();
+      return;
+    }
+    void handleBluetoothPermission();
+  }, [isBluetoothPermitted]);
+
+  useEffect(() => {
+    if (!isBluetoothEnabled || !isLocationPermitted || !isBluetoothPermitted) {
+      return;
+    }
+    void scanNearbyDevices();
+  }, [isBluetoothPermitted, isLocationPermitted, isBluetoothEnabled]);
+
+  return (
+    <BluetoothContext.Provider
+      value={{
+        isBluetoothPermitted,
+        isLocationPermitted,
+        isBluetoothEnabled,
+        allDevices,
+        devicesMap,
+        connect,
+        connectedDevice,
+      }}
+    >
+      {children}
+    </BluetoothContext.Provider>
+  );
 }
+
+export const useBluetooth = () => useContext(BluetoothContext);
 
 export default BluetoothLayout;
