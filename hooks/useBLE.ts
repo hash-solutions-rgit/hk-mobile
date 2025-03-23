@@ -328,12 +328,6 @@ function useBLE(): BluetoothLowEnergyApi {
     };
   }, []);
 
-  useEffect(() => {
-    if (isLocationPermitted) {
-      requestPermissions();
-    }
-  }, [isLocationPermitted]);
-
   return {
     scanForPeripherals,
     requestPermissions,

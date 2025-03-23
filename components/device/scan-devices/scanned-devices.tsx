@@ -5,11 +5,11 @@ import Render from "~/components/common/render";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import useBLE from "~/hooks/useBLE";
-import { useBluetooth } from "~/layouts/bluetooth-layout";
+import { useBluetoothDeviceModuleStore } from "~/store";
 
 function ScannedDevices() {
   // hooks
-  const { allDevices } = useBluetooth();
+  const { allDevices, isScanning } = useBluetoothDeviceModuleStore();
 
   return (
     <View className="gap-2 flex-col flex">
@@ -27,16 +27,16 @@ function ScannedDevices() {
             variant="link"
             // onPress={scanForPeripherals}
           >
-            {/* <Render renderIf={!isScanning}>
+            <Render renderIf={!isScanning}>
               <Text>Scan Now</Text>
-            </Render> */}
-            {/* <Render renderIf={isScanning}>
+            </Render>
+            <Render renderIf={isScanning}>
               <Text>Scanning...</Text>
-            </Render> */}
+            </Render>
           </Button>
-          {/* <Render renderIf={isScanning}>
+          <Render renderIf={isScanning}>
             <ActivityIndicator className="w-4 h-4 text-gray-500" />
-          </Render> */}
+          </Render>
         </View>
       </View>
       {Array.from(allDevices.values()).map((device, index) => (

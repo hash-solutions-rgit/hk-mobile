@@ -150,6 +150,13 @@ const askBluetoothPermissions = async () => {
       return { type: EPermissionTypes.bluetoothPermission, value: true };
     } else {
       //for android version < 12, no need of runtime permissions.
+      if (
+        (await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION)) !==
+        RESULTS.GRANTED
+      ) {
+        return { type: EPermissionTypes.bluetoothPermission, value: false };
+      }
+      console.info("ACCESS_FINE_LOCATION permission allowed");
       return { type: EPermissionTypes.bluetoothPermission, value: true };
     }
   }

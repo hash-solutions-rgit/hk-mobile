@@ -7677,10 +7677,10 @@ react-native-android-location-enabler@^2.0.1:
   resolved "https://registry.yarnpkg.com/react-native-android-location-enabler/-/react-native-android-location-enabler-2.0.1.tgz#d3073d1ddc75c1afa304948156de3347fbf47174"
   integrity sha512-hDNfQL4gImrmc6K6J44kd2iKrpPHc23V4stujNIg3I1LvYLT+kwWmfTGapeY0hl6EXACfaFdm/wBb4ggtNcnPA==
 
-react-native-ble-manager@^12.1.3:
-  version "12.1.3"
-  resolved "https://registry.yarnpkg.com/react-native-ble-manager/-/react-native-ble-manager-12.1.3.tgz#7dd550d8ccfa1226caafaae38b585604135ac348"
-  integrity sha512-81egY3rh+tWsStLJjIbcR0AwClAKztqjcRMdRAexihAMlvAaC8Hf/4QKBnfxaBFiX8Lk6gEFpB4noXi1U3tRqg==
+react-native-ble-manager@^12.1.4:
+  version "12.1.4"
+  resolved "https://registry.yarnpkg.com/react-native-ble-manager/-/react-native-ble-manager-12.1.4.tgz#c832f0597aeb1270e5b35f59c54f10c71cdfc804"
+  integrity sha512-APaT50CtYOvdvK2uSOErLSaC6oTjdz1S1Dx/zS749KB1VTbwmb1WfPnjCmtssX1HC+8AyJDw7MJTiYWZ2/BhHg==
 
 react-native-css-interop@0.1.22:
   version "0.1.22"
