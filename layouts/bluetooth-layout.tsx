@@ -2,10 +2,12 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   EmitterSubscription,
+  EventSubscription,
   NativeEventEmitter,
   NativeModules,
 } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
+import BluetoothModule from "~/utils/bluetooth-module";
 import {
   handleLocationPermission as handleLocationPermissionService,
   handleBluetoothPermission as handleBluetoothPermissionService,
@@ -40,7 +42,7 @@ const BluetoothContext = createContext(initialBluetoothContext);
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
-const SECONDS_TO_SCAN = 0;
+const SECONDS_TO_SCAN = 6;
 const ALLOW_DUPLICATE = false;
 const MAX_CONNECT_WAITING_PERIOD = 30000;
 const DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
@@ -62,41 +64,41 @@ function BluetoothLayout({ children }: Props) {
   const allDevices = useMemo(() => Object.values(devicesMap), [devicesMap]);
 
   const scanNearbyDevices = async (): Promise<void> => {
-    return new Promise(async (resolve, reject) => {
-      console.log("scanNearbyDevices");
-      let listeners: EmitterSubscription[] = [];
+    console.log("scanNearbyDevices");
+    let listeners: EventSubscription[] = [];
 
-      const onBleManagerDiscoverPeripheral = (peripheral: Peripheral) => {
-        if (peripheral.id && peripheral.name) {
-          console.log("Device Discovered", peripheral);
-          setDevicesMap((prev) => ({ ...prev, [peripheral.id]: peripheral }));
-        }
-      };
-
-      const onBleManagerStopScan = () => {
-        for (const listener of listeners) {
-          listener.remove();
-        }
-        resolve();
-      };
-
-      try {
-        listeners = [
-          bleManagerEmitter.addListener(
-            "BleManagerDiscoverPeripheral",
-            onBleManagerDiscoverPeripheral
-          ),
-          bleManagerEmitter.addListener(
-            "BleManagerStopScan",
-            onBleManagerStopScan
-          ),
-        ];
-      } catch (error) {
-        reject(
-          new Error(error instanceof Error ? error.message : (error as string))
-        );
+    const onBleManagerDiscoverPeripheral = (peripheral: Peripheral) => {
+      console.log("Device Discovered", peripheral);
+      if (peripheral.id && peripheral.name) {
+        setDevicesMap((prev) => ({ ...prev, [peripheral.id]: peripheral }));
       }
-    });
+    };
+
+    const onBleManagerStopScan = () => {
+      for (const listener of listeners) {
+        listener.remove();
+      }
+    };
+
+    try {
+      listeners = [
+        BleManager.onDiscoverPeripheral(onBleManagerDiscoverPeripheral),
+
+        BleManager.onStopScan(onBleManagerStopScan),
+      ];
+
+      console.log("Scanning for peripherals");
+      await BleManager.scan(
+        SERVICE_UUIDS,
+        SECONDS_TO_SCAN,
+        ALLOW_DUPLICATE,
+        {}
+      ).then(() => {
+        console.log("Scanning completed");
+      });
+    } catch (error) {
+      console.error("Error while scanning for peripherals", error);
+    }
   };
 
   const isDeviceConnected = async (deviceId: string) => {
@@ -252,19 +254,56 @@ function BluetoothLayout({ children }: Props) {
     }
   };
 
-  const handleScanForPeripherals = async () => {
-    console.log("scanning for peripherals");
+  const handleBleSetup = async () => {
     try {
-      await scanNearbyDevices();
+      await BleManager.start({ showAlert: false })
+        .then(() => console.debug("BleManager started."))
+        .catch((error: any) =>
+          console.error("BeManager could not be started.", error)
+        );
+
       await BleManager.scan(
         SERVICE_UUIDS,
         SECONDS_TO_SCAN,
         ALLOW_DUPLICATE,
         {}
-      );
+      ).then(() => {
+        console.log("Scanning completed");
+      });
     } catch (error) {
-      console.error("Error while scanning for peripherals", error);
+      console.error("unexpected error starting BleManager.", error);
+      return;
     }
+
+    const onBleManagerDiscoverPeripheral = (peripheral: Peripheral) => {
+      console.log("Device Discovered", peripheral);
+      if (peripheral.id && peripheral.name) {
+        setDevicesMap((prev) => ({ ...prev, [peripheral.id]: peripheral }));
+      }
+    };
+
+    const onBleManagerStopScan = () => {
+      for (const listener of listeners) {
+        listener.remove();
+      }
+    };
+
+    const listeners = [
+      BleManager.onDiscoverPeripheral(onBleManagerDiscoverPeripheral),
+      BleManager.onStopScan(onBleManagerStopScan),
+      // BleManager.onStopScan(handleOnStopScan),
+      // BleManager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
+      // BleManager.onDidUpdateValueForCharacteristic(
+      //   handleOnDidUpdateValueForCharacteristic
+      // ),
+    ];
+
+    return () => {
+      console.debug("[app] main component unmounting. Removing listeners...");
+      for (const listener of listeners) {
+        listener.remove();
+      }
+    };
   };
 
   useEffect(() => {
@@ -290,13 +329,8 @@ function BluetoothLayout({ children }: Props) {
     if (!isBluetoothEnabled || !isBluetoothPermitted) {
       return;
     }
-    void handleScanForPeripherals();
-  }, [
-    isBluetoothPermitted,
-    isLocationPermitted,
-    isBluetoothEnabled,
-    handleScanForPeripherals,
-  ]);
+    void handleBleSetup();
+  }, [isBluetoothPermitted, isLocationPermitted, isBluetoothEnabled]);
 
   return (
     <BluetoothContext.Provider
