@@ -140,7 +140,7 @@ function useBLE(): BluetoothLowEnergyApi {
       "bluetoothModule.DEVICE_SERVICE_UUID"
     );
 
-    await bleManager.scan([bluetoothModule.DEVICE_SERVICE_UUID], 0, false, {});
+    await bleManager.scan([], 6, false, {});
   };
 
   const stopScanPeripherals = async () => {
