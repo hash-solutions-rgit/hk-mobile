@@ -1,9 +1,12 @@
 import "~/global.css";
 
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack,Slot } from "expo-router";
 import CustomSplashScreen from "~/components/common/splashscreen";
 import React, { useEffect } from "react";
 import { PortalHost } from "@rn-primitives/portal";
+import { View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -40,22 +43,16 @@ export default function RootLayout() {
     }, 5000);
   }, [appIsReady]);
 
-  if (!appIsReady) {
-    return null;
-  }
-
-  if (!splashDone && appIsReady) {
+  if (!appIsReady || !splashDone) {
     return <CustomSplashScreen />;
   }
 
   return (
-    <>
-      <Stack>
-        <Stack.Screen name="(root)/(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(root)/shop-now" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+    
 
+    <>
+
+      <Slot/>
       <PortalHost />
     </>
   );

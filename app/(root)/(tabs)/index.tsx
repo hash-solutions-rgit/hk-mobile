@@ -5,12 +5,13 @@ import { Text } from "~/components/ui/text";
 import { Sparkles } from "~/lib/icons/sparkles";
 import { BluetoothSearching } from "~/lib/icons/bluetooth-searching";
 import { useRouter } from "expo-router";
+import { House } from "~/lib/icons/house";
 
 export default function Home() {
   const router = useRouter();
 
   const handleOnPress = () => {
-    router.push("/(root)/(tabs)/device");
+    router.push("/(tabs)/device");
   };
 
   return (
@@ -44,3 +45,6 @@ export default function Home() {
     </View>
   );
 }
+
+
+

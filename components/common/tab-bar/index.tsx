@@ -27,7 +27,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     };
   });
 
-  // handlers
   const handleLayoutChange = (event: LayoutChangeEvent) => {
     setDimensions({
       height: event.nativeEvent.layout.height,
@@ -37,9 +36,10 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   useEffect(() => {
     tabPositionX.value = withSpring(buttonWidth * state.index, {
-      duration: 1500,
+      damping: 15,
+      stiffness: 120,
     });
-  }, [state.index]);
+  }, [state.index, buttonWidth]);
 
   return (
     <View
@@ -50,7 +50,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         style={[
           {
             height: dimensions.height - 15,
-            width: buttonWidth - 25,
+            width: buttonWidth,
           },
           animatedStyle,
         ]}
@@ -62,8 +62,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
-              ? options.title
-              : route.name;
+            ? options.title
+            : route.name;
 
         const isFocused = state.index === index;
 
@@ -94,6 +94,10 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             isFocused={isFocused}
             routeName={route.name}
             label={label as string}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            testID={options.tabBarTestID}
           />
         );
       })}

@@ -15,7 +15,8 @@
         "NSBluetoothAlwaysUsageDescription": "We need Bluetooth access to connect to your device.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with BLE devices.",
         "NSLocationWhenInUseUsageDescription": "We need location access to connect to your device."
-      }
+      },
+      "appleTeamId": "454NDM4NM2"
     },
     "android": {
       "adaptiveIcon": {

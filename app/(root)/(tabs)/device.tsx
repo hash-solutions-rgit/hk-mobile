@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Render from "~/components/common/render";
 import ScanDevices from "~/components/device/scan-devices";
 import DeviceController from "~/components/device/device-controller";
+import { ShoppingBag } from "~/lib/icons/shopping-bag";
 
 import {
   enableBluetooth,
@@ -75,5 +76,6 @@ const DevicesTab = () => {
     </ScrollView>
   );
 };
+
 
 export default DevicesTab;
