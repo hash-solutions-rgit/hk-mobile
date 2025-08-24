@@ -77,7 +77,8 @@
             "LocationWhenInUse"
           ]
         }
-      ]
+      ],
+      "./plugins/withExpoModuleGradlePlugin"
     ],
     "experiments": {
       "typedRoutes": true
