@@ -10,7 +10,11 @@ export const isAndroid = () => {
 
 export const getPlatformVersion = () => {
   const version = Platform.Version;
-  const major = parseInt(version.toString().split(".")[0], 10);
-  const minor = parseInt(version.toString().split(".")[1], 10);
-  return major * 10 + minor;
+  if (typeof version === "string") {
+    const [majorStr, minorStr = "0"] = version.split(".");
+    const major = parseInt(majorStr, 10);
+    const minor = parseInt(minorStr, 10);
+    return major * 10 + minor;
+  }
+  return version;
 };
