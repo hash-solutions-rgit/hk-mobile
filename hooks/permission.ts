@@ -10,54 +10,82 @@ const LOCATION_PERMISSION = {
 export const usePermission = () => {
   const { isLocationPermitted, setIsLocationPermitted } = usePermissionStore();
 
-  const handleLocationPermission = async () => {
-    if (Platform.OS === "ios") {
-      //ask for location permissions for IOS
-      const locationResult = await Promise.all([
-        request(PERMISSIONS.IOS.LOCATION_ALWAYS),
-        request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE),
-      ]);
-      let resultAlways = locationResult?.[0];
-      let resultWhenInUse =
-        locationResult.length > 1 ? locationResult[1] : null;
-      const isResultAlwaysDenied = () => {
-        if (
-          resultAlways === RESULTS.BLOCKED ||
-          resultAlways === RESULTS.UNAVAILABLE ||
-          resultAlways === RESULTS.DENIED
-        ) {
-          return true;
-        } else {
-          return false;
+  const handleLocationPermission = async (): Promise<boolean> => {
+    console.debug("Requesting location permission...");
+    
+    try {
+      if (Platform.OS === "ios") {
+        // For iOS, we need location permission for Bluetooth scanning
+        const locationResult = await Promise.all([
+          request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE),
+          request(PERMISSIONS.IOS.LOCATION_ALWAYS).catch(() => RESULTS.DENIED), // Optional
+        ]);
+        
+        const whenInUseResult = locationResult[0];
+        const alwaysResult = locationResult[1];
+        
+        console.debug("iOS location permissions:", {
+          whenInUse: whenInUseResult,
+          always: alwaysResult
+        });
+        
+        // We need at least "when in use" permission
+        const isGranted = whenInUseResult === RESULTS.GRANTED || 
+                         alwaysResult === RESULTS.GRANTED;
+        
+        setIsLocationPermitted(isGranted);
+        
+        if (!isGranted) {
+          console.error("iOS location permission denied");
         }
-      };
-      const isResultWhenInUseDenied = () => {
-        if (
-          resultWhenInUse === RESULTS.BLOCKED ||
-          resultWhenInUse === RESULTS.UNAVAILABLE ||
-          resultWhenInUse === RESULTS.DENIED
-        ) {
-          return true;
-        } else {
-          return false;
-        }
-      };
-      if (isResultAlwaysDenied() && isResultWhenInUseDenied()) {
-        //user hasn't allowed location
-        setIsLocationPermitted(LOCATION_PERMISSION.NOT_GIVEN);
+        
+        return isGranted;
+        
       } else {
-        //user has allowed location
-        setIsLocationPermitted(LOCATION_PERMISSION.GIVEN);
+        // For Android, location permission is required for Bluetooth scanning
+        const result = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+        console.debug("Android location permission result:", result);
+        
+        const isGranted = result === RESULTS.GRANTED;
+        setIsLocationPermitted(isGranted);
+        
+        if (!isGranted) {
+          console.error("Android location permission denied");
+        }
+        
+        return isGranted;
       }
-    } else {
-      //ask for location permissions for Android
-      const result = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-      setIsLocationPermitted(result === RESULTS.GRANTED);
+    } catch (error) {
+      console.error("Error requesting location permission:", error);
+      setIsLocationPermitted(false);
+      return false;
+    }
+  };
+
+  const checkLocationPermission = async (): Promise<boolean> => {
+    console.debug("Checking current location permission status...");
+    
+    try {
+      if (Platform.OS === "ios") {
+        const whenInUseResult = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+        const isGranted = whenInUseResult === RESULTS.GRANTED;
+        setIsLocationPermitted(isGranted);
+        return isGranted;
+      } else {
+        const result = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+        const isGranted = result === RESULTS.GRANTED;
+        setIsLocationPermitted(isGranted);
+        return isGranted;
+      }
+    } catch (error) {
+      console.error("Error checking location permission:", error);
+      return false;
     }
   };
 
   return {
     handleLocationPermission,
+    checkLocationPermission,
     isLocationPermitted,
   };
 };

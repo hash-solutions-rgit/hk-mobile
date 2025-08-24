@@ -14,7 +14,8 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "We need Bluetooth access to connect to your device.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with BLE devices.",
-        "NSLocationWhenInUseUsageDescription": "We need location access to connect to your device."
+        "NSLocationWhenInUseUsageDescription": "We need location access to connect to your device.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "appleTeamId": "454NDM4NM2"
     },

@@ -16,11 +16,11 @@ interface BluetoothLowEnergyApi {
   scanForPeripherals(): Promise<void>;
   stopScanPeripherals(): Promise<void>;
   connectToDevice: (deviceId: Peripheral) => Promise<void>;
-  disconnectFromDevice: (boolean?: boolean) => void;
+  disconnectFromDevice: (force?: boolean) => Promise<void>;
   connectedDevice: Peripheral | null;
   allDevices: Map<string, Peripheral>;
   checkBluetooth: () => Promise<void>;
-  renameDevice: (name: string) => void;
+  renameDevice: (name: string) => Promise<void>;
   isScanning: boolean;
 }
 
@@ -42,52 +42,66 @@ function useBLE(): BluetoothLowEnergyApi {
   const heartBeatTimer = useRef<NodeJS.Timeout | null>(null);
 
   const checkBluetooth = async () => {
-    await bluetoothModule.checkBluetooth();
+    try {
+      const state = await bleManager.checkState();
+      console.debug("Bluetooth state:", state);
+      
+      if (state !== 'on') {
+        if (Platform.OS === 'android') {
+          try {
+            await bleManager.enableBluetooth();
+            console.debug("Bluetooth enabled successfully");
+          } catch (error) {
+            console.error("Failed to enable Bluetooth:", error);
+            throw new Error("Please enable Bluetooth manually");
+          }
+        } else {
+          throw new Error("Please enable Bluetooth in Settings");
+        }
+      }
+    } catch (error) {
+      console.error("Bluetooth check failed:", error);
+      throw error;
+    }
   };
 
   const sendHeartBeat = (deviceId: Peripheral["id"]) => {
+    if (heartBeatTimer.current) {
+      clearTimeout(heartBeatTimer.current);
+    }
+    
     heartBeatTimer.current = setTimeout(() => {
       bleManager.writeWithoutResponse(
         deviceId,
         bluetoothModule.DEVICE_SERVICE_UUID,
         bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
         bluetoothModule.hexToByteArray("e0aa55")
-      );
+      ).catch(error => {
+        console.error("Heartbeat failed:", error);
+      });
     }, 5000);
   };
 
   const requestAndroid31Permissions = async () => {
-    const bluetoothScanPermission = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-      {
-        title: "Bluetooth Permission",
-        message: "Bluetooth Low Energy requires Location",
-        buttonPositive: "OK",
-      }
-    );
+    try {
+      const permissions = [
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ];
 
-    const bluetoothConnectPermission = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-      {
-        title: "Bluetooth Permission",
-        message: "Bluetooth Low Energy requires Location",
-        buttonPositive: "OK",
-      }
-    );
-    const fineLocationPermission = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      {
-        title: "Location Permission",
-        message: "Bluetooth Low Energy requires Location",
-        buttonPositive: "OK",
-      }
-    );
+      const results = await PermissionsAndroid.requestMultiple(permissions);
+      
+      const allGranted = Object.values(results).every(
+        result => result === PermissionsAndroid.RESULTS.GRANTED
+      );
 
-    return (
-      bluetoothScanPermission === "granted" &&
-      bluetoothConnectPermission === "granted" &&
-      fineLocationPermission === "granted"
-    );
+      console.debug("Android 12+ permissions:", results);
+      return allGranted;
+    } catch (error) {
+      console.error("Error requesting Android 12+ permissions:", error);
+      return false;
+    }
   };
 
   const requestBluetoothFallback = async () => {
@@ -98,84 +112,199 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const requestPermissions = async () => {
-    // await handleLocationPermission();
-    if (Platform.OS === "android") {
-      if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: "Location Permission",
-            message: "Bluetooth Low Energy requires Location",
-            buttonPositive: "OK",
-          }
-        );
-
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
+  const requestPermissions = async (): Promise<boolean> => {
+    console.debug("Requesting permissions...");
+    
+    try {
+      if (Platform.OS === "android") {
+        if ((ExpoDevice.platformApiLevel ?? -1) >= 31) {
+          return await requestAndroid31Permissions();
+        } else {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: "Location Permission",
+              message: "Bluetooth scanning requires location permission",
+              buttonPositive: "OK",
+            }
+          );
+          return granted === PermissionsAndroid.RESULTS.GRANTED;
+        }
+      } else if (Platform.OS === "ios") {
+        const result = await request(PERMISSIONS.IOS.BLUETOOTH);
+        console.debug("iOS Bluetooth permission result:", result);
+        return result === RESULTS.GRANTED;
       } else {
-        const isAndroid31PermissionsGranted =
-          await requestAndroid31Permissions();
-
-        return isAndroid31PermissionsGranted;
-      }
-    } else if (Platform.OS === "ios") {
-      const result = await request(PERMISSIONS.IOS.BLUETOOTH);
-      if (result === RESULTS.GRANTED) {
-        console.debug("Bluetooth permission granted");
         return true;
       }
-      return false;
-    } else {
-      return true;
-    }
-  };
-
-  const isDuplicteDevice = (devices: Peripheral[], nextDevice: Peripheral) =>
-    devices.findIndex((device) => nextDevice.id === device.id) > -1;
-
-  const scanForPeripherals = async () => {
-    setIsScanning(true);
-    console.debug(
-      bluetoothModule.DEVICE_SERVICE_UUID,
-      "bluetoothModule.DEVICE_SERVICE_UUID"
-    );
-
-    await bleManager.scan([], 6, false, {});
-  };
-
-  const stopScanPeripherals = async () => {
-    await bleManager.stopScan();
-    setAllDevices(new Map());
-  };
-
-  const connectToDevice = async (device: Peripheral) => {
-    try {
-      await bleManager.connect(device.id);
-      await bleManager.retrieveServices(device.id, [
-        bluetoothModule.DEVICE_SERVICE_UUID,
-      ]);
-      await bluetoothModule.verifyPassword(device.id);
-      await bluetoothModule.setModelNumber(device.id);
     } catch (error) {
-      console.error("Error while connecting", error);
+      console.error("Error requesting permissions:", error);
+      return false;
     }
   };
 
-  const disconnectFromDevice = async (force = false) => {
+  const scanForPeripherals = async (): Promise<void> => {
+    try {
+      console.debug("Starting scan for peripherals...");
+      
+      // Stop any ongoing scan first
+      await bleManager.stopScan().catch(() => {});
+      
+      // Check Bluetooth state
+      await checkBluetooth();
+      
+      // Request permissions
+      const hasPermissions = await requestPermissions();
+      if (!hasPermissions) {
+        throw new Error("Permissions not granted");
+      }
+      
+      // Clear previous devices and set scanning state
+      setAllDevices(new Map());
+      setIsScanning(true);
+      
+      console.debug("Service UUID:", bluetoothModule.DEVICE_SERVICE_UUID);
+      
+      // Start scanning - use empty array to find all devices
+      await bleManager.scan([], 10, false, {});
+      console.debug("Scan started successfully");
+      
+    } catch (error:any) {
+      console.error("Error starting scan:", error);
+      setIsScanning(false);
+      
+      if (error.message?.includes("Bluetooth")) {
+        Alert.alert("Bluetooth Required", "Please enable Bluetooth to scan for devices", [
+          { text: "Cancel" },
+          { text: "Settings", onPress: requestBluetoothFallback }
+        ]);
+      } else if (error.message?.includes("Permission")) {
+        Alert.alert("Permission Required", "Bluetooth and location permissions are required", [
+          { text: "Cancel" },
+          { text: "Retry", onPress: () => requestPermissions() }
+        ]);
+      } else {
+        Alert.alert("Scan Error", `Failed to start scanning: ${error.message}`);
+      }
+      
+      throw error;
+    }
+  };
+
+  const stopScanPeripherals = async (): Promise<void> => {
+    try {
+      await bleManager.stopScan();
+      setIsScanning(false);
+      console.debug("Scan stopped");
+    } catch (error) {
+      console.error("Error stopping scan:", error);
+      setIsScanning(false);
+    }
+  };
+
+  const connectToDevice = async (device: Peripheral): Promise<void> => {
+    console.debug("Attempting to connect to device:", device.name, device.id);
+    
+    try {
+      // Stop scanning first
+      await stopScanPeripherals();
+      
+      // Check if already connected
+      const isConnected = await bleManager.isPeripheralConnected(device.id, []);
+      if (isConnected) {
+        console.debug("Device already connected");
+        setConnectedDevice(device);
+        return;
+      }
+
+      console.debug("Connecting to device...");
+      await bleManager.connect(device.id);
+      console.debug("Connected successfully");
+
+      console.debug("Retrieving services...");
+      const services = await bleManager.retrieveServices(device.id);
+      console.debug("Services retrieved:", services.services?.map(s => s.uuid));
+
+      console.debug("Verifying password...");
+      const passwordVerified = await bluetoothModule.verifyPassword(device.id);
+      if (!passwordVerified) {
+        throw new Error("Password verification failed - device may not be compatible");
+      }
+      console.debug("Password verified");
+
+      console.debug("Setting model number...");
+      await bluetoothModule.setModelNumber(device.id);
+      console.debug("Model number set");
+
+      setConnectedDevice(device);
+      sendHeartBeat(device.id);
+      console.debug("Device connection completed successfully");
+      
+    } catch (error:any) {
+      console.error("Error while connecting:", error);
+      
+      // Try to disconnect if there was an error
+      try {
+        await bleManager.disconnect(device.id);
+      } catch (disconnectError) {
+        console.error("Error disconnecting after failed connection:", disconnectError);
+      }
+      
+      Alert.alert(
+        "Connection Error", 
+        `Failed to connect to ${device.name}:\n${error.message}`
+      );
+      throw error;
+    }
+  };
+
+  const disconnectFromDevice = async (force = false): Promise<void> => {
     if (connectedDevice) {
-      await bluetoothModule.startStopDevice(connectedDevice.id, force);
-      await bleManager.disconnect(connectedDevice.id);
-      setModelName("");
+      try {
+        console.debug("Disconnecting from device...");
+        
+        // Clear heartbeat
+        if (heartBeatTimer.current) {
+          clearTimeout(heartBeatTimer.current);
+          heartBeatTimer.current = null;
+        }
+        
+        // Stop device if needed
+        await bluetoothModule.startStopDevice(connectedDevice.id, force);
+        
+        // Disconnect
+        await bleManager.disconnect(connectedDevice.id);
+        
+        // Clear state
+        setConnectedDevice(null);
+        setModelName("");
+        
+        console.debug("Disconnected successfully");
+      } catch (error) {
+        console.error("Error disconnecting:", error);
+        // Still clear the state even if disconnect failed
+        setConnectedDevice(null);
+        setModelName("");
+      }
     }
   };
 
-  //   handlers
+  // Event handlers
   const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
-    console.log("peripheral", peripheral);
-    if (!peripheral.name) {
-      peripheral.name = "NO NAME";
-    } else {
+    console.debug("Discovered peripheral:", {
+      name: peripheral.name || "NO NAME",
+      id: peripheral.id,
+      rssi: peripheral.rssi
+    });
+    
+    // Add all discovered devices for debugging
+    if (peripheral.id) {
+      // Set a default name if none exists
+      if (!peripheral.name || peripheral.name.trim() === '') {
+        peripheral.name = `Unknown Device`;
+      }
       addDevice(peripheral);
+      console.debug("Added device to store");
     }
   };
 
@@ -183,15 +312,16 @@ function useBLE(): BluetoothLowEnergyApi {
     peripheral: string;
     status: number;
   }) => {
+    console.debug("Peripheral connected event:", peripheral);
     const peripheralDevice = allDevices.get(peripheral.peripheral);
-    if (peripheralDevice) {
+    if (peripheralDevice && peripheral.status === 0) {
       setConnectedDevice(peripheralDevice);
-      await stopScanPeripherals();
       sendHeartBeat(peripheral.peripheral);
     }
   };
 
   const handleOnStopScan = () => {
+    console.debug("Scan stopped event");
     setIsScanning(false);
   };
 
@@ -199,131 +329,115 @@ function useBLE(): BluetoothLowEnergyApi {
     peripheral: string;
     status: number;
   }) => {
-    const peripheralDevice = allDevices.get(peripheral.peripheral);
-    if (peripheralDevice) {
+    console.debug("Peripheral disconnected event:", peripheral);
+    
+    if (connectedDevice?.id === peripheral.peripheral) {
       setConnectedDevice(null);
-      if (heartBeatTimer.current) clearTimeout(heartBeatTimer.current);
+      setModelName("");
+      
+      if (heartBeatTimer.current) {
+        clearTimeout(heartBeatTimer.current);
+        heartBeatTimer.current = null;
+      }
     }
   };
+  
   const handleOnDidUpdateValueForCharacteristic = (data: {
     characteristic: string;
     peripheral: string;
     service: string;
     value: number[];
   }) => {
+    console.debug("Characteristic value updated:", data);
     const str = data.value.map((byte) => String.fromCharCode(byte)).join("");
+    console.debug("Received string:", str);
+    
     if (models.includes(str)) {
+      console.debug("Model detected:", str);
       setModelName(str);
       bluetoothModule.modelNumber = str;
     }
   };
 
-  const renameDevice = async (name: string) => {
-    if (!connectedDevice) return;
-    const hexString = stringToHex(name);
-    const byteData = bluetoothModule.hexToByteArray("22" + hexString);
-    await bleManager.write(
-      connectedDevice.id,
-      bluetoothModule.DEVICE_SERVICE_UUID,
-      bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
-      byteData
-    );
+  const renameDevice = async (name: string): Promise<void> => {
+    if (!connectedDevice) {
+      throw new Error("No device connected");
+    }
+    
+    try {
+      const hexString = stringToHex(name);
+      const byteData = bluetoothModule.hexToByteArray("22" + hexString);
+      await bleManager.write(
+        connectedDevice.id,
+        bluetoothModule.DEVICE_SERVICE_UUID,
+        bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
+        byteData
+      );
+      console.debug("Device renamed successfully");
+    } catch (error) {
+      console.error("Error renaming device:", error);
+      throw error;
+    }
   };
 
   const stringToHex = (str: string): string => {
     let hexString = "";
     for (let i = 0; i < str.length; i++) {
-      hexString += str.charCodeAt(i).toString(16); // Convert each character to its hex value
+      const hex = str.charCodeAt(i).toString(16).padStart(2, '0');
+      hexString += hex;
     }
     return hexString;
   };
 
-  const handleIOSPermissions = async () => {
-    if (Platform.OS === "ios") {
-      const result = await request(PERMISSIONS.IOS.BLUETOOTH);
-      if (result === RESULTS.GRANTED) {
-        console.debug("Bluetooth permission granted");
-      } else {
-        Alert.alert(
-          "Permission Denied",
-          "Bluetooth is required for device connectivity."
-        );
-      }
-    }
-  };
-
-  const handleAndroidPermissions = () => {
-    if (Platform.OS === "android" && Platform.Version >= 31) {
-      PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-      ]).then((result) => {
-        if (result) {
-          console.debug(
-            "[handleAndroidPermissions] User accepts runtime permissions android 12+"
-          );
-        } else {
-          console.error(
-            "[handleAndroidPermissions] User refuses runtime permissions android 12+"
-          );
-        }
-      });
-    } else if (Platform.OS === "android" && Platform.Version >= 23) {
-      PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-      ).then((checkResult) => {
-        if (checkResult) {
-          console.debug(
-            "[handleAndroidPermissions] runtime permission Android <12 already OK"
-          );
-        } else {
-          PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-          ).then((requestResult) => {
-            if (requestResult) {
-              console.debug(
-                "[handleAndroidPermissions] User accepts runtime permission android <12"
-              );
-            } else {
-              console.error(
-                "[handleAndroidPermissions] User refuses runtime permission android <12"
-              );
-            }
-          });
-        }
-      });
-    }
-  };
-
+  // Initialize BLE Manager and set up listeners
   useEffect(() => {
-    handleAndroidPermissions();
-    handleIOSPermissions();
-    try {
-      bleManager
-        .start({ showAlert: false })
-        .then(() => console.debug("BleManager started."))
-        .catch((error: any) =>
-          console.error("BeManager could not be started.", error)
-        );
-    } catch (error) {
-      console.error("unexpected error starting BleManager.", error);
-      return;
-    }
+    let mounted = true;
+    
+    const initializeBLE = async () => {
+      console.debug("Initializing BLE Manager...");
+      
+      try {
+        // Start BLE Manager
+        await bleManager.start({ showAlert: false });
+        console.debug("BleManager started successfully");
+        
+        if (!mounted) return;
 
-    const listeners = [
-      bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
-      bleManager.onConnectPeripheral(handleOnConnectPeripheral),
-      bleManager.onStopScan(handleOnStopScan),
-      bleManager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
-      bleManager.onDidUpdateValueForCharacteristic(
-        handleOnDidUpdateValueForCharacteristic
-      ),
-    ];
+        // Set up event listeners
+        const listeners = [
+          bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
+          bleManager.onConnectPeripheral(handleOnConnectPeripheral),
+          bleManager.onStopScan(handleOnStopScan),
+          bleManager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
+          bleManager.onDidUpdateValueForCharacteristic(handleOnDidUpdateValueForCharacteristic),
+        ];
+
+        console.debug("BLE event listeners set up");
+
+        // Cleanup function
+        return () => {
+          console.debug("Cleaning up BLE listeners...");
+          listeners.forEach(listener => listener.remove());
+        };
+        
+      } catch (error) {
+        console.error("Failed to initialize BLE Manager:", error);
+      }
+    };
+
+    const cleanup = initializeBLE();
 
     return () => {
-      console.debug("[app] main component unmounting. Removing listeners...");
-      for (const listener of listeners) {
-        listener.remove();
+      mounted = false;
+      
+      // Clear heartbeat timer
+      if (heartBeatTimer.current) {
+        clearTimeout(heartBeatTimer.current);
+      }
+      
+      // Execute cleanup if available
+      if (cleanup instanceof Promise) {
+        cleanup.then(cleanupFn => cleanupFn?.());
       }
     };
   }, []);
