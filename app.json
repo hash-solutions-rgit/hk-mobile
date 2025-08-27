@@ -42,6 +42,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      ["./fix-settings-plugin.js"],
       [
         "react-native-ble-plx",
         {
@@ -93,5 +94,5 @@
       }
     },
     "owner": "hauskorper"
-  }
+}
 }
