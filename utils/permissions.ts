@@ -5,11 +5,11 @@ import { EPermissionTypes } from "./ePermissiontypes";
 import {
   Alert,
   Linking,
-  NativeEventEmitter,
-  NativeModules,
   Platform,
 } from "react-native";
-import BleManager, { BleState } from "react-native-ble-manager";
+import BluetoothModule from "./bluetooth-module";
+import { State } from "react-native-ble-plx";
+
 
 const askGPSPermission = async () => {
   //prompt to enable gps
@@ -188,14 +188,15 @@ export const openBluetoothSettings = () => {
 
 export async function enableBluetooth() {
   //before scaning try to enable bluetooth if not enabled already
-  const state = await BleManager.checkState();
-  if (state === BleState.On) return true;
+  const bleManager = BluetoothModule.getInstance().getManager();
+  const state = await bleManager.state();
+  if (state === State.PoweredOn) return true;
   if (
     Platform.OS === "android" &&
-    (await BleManager.checkState()) === BleState.Off
+    state === State.PoweredOff
   ) {
     try {
-      await BleManager.enableBluetooth();
+      await bleManager.enable();
       return true;
       //go ahead to scan nearby devices
     } catch (e) {
@@ -204,7 +205,7 @@ export async function enableBluetooth() {
     }
   } else if (
     Platform.OS === "ios" &&
-    (await BleManager.checkState()) === BleState.Off
+   state === State.PoweredOff
   ) {
     Alert.prompt(
       "Bluetooth is required to connect to devices. Please turn it on."

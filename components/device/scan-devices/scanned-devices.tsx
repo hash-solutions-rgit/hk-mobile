@@ -1,6 +1,6 @@
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Peripheral } from "react-native-ble-manager";
+import { Device } from "react-native-ble-plx";
 import Render from "~/components/common/render";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -50,7 +50,7 @@ function ScannedDevices() {
 }
 
 type BluetoothScannedDeviceCardProps = {
-  item: Peripheral;
+  item: Device;
   index: number;
 };
 

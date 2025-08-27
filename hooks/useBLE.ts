@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
-import bleManager, { Peripheral } from "react-native-ble-manager";
 
 import * as ExpoDevice from "expo-device";
 
@@ -10,15 +9,16 @@ import { useBluetoothDeviceModuleStore } from "~/store";
 import { models } from "~/constants/models-features";
 import { usePermission } from "./permission";
 import { PERMISSIONS, request, RESULTS } from "react-native-permissions";
+import { Device, State } from "react-native-ble-plx";
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
   scanForPeripherals(): Promise<void>;
   stopScanPeripherals(): Promise<void>;
-  connectToDevice: (deviceId: Peripheral) => Promise<void>;
+  connectToDevice: (deviceId: Device) => Promise<void>;
   disconnectFromDevice: (force?: boolean) => Promise<void>;
-  connectedDevice: Peripheral | null;
-  allDevices: Map<string, Peripheral>;
+  connectedDevice: Device | null;
+  allDevices: Map<string, Device>;
   checkBluetooth: () => Promise<void>;
   renameDevice: (name: string) => Promise<void>;
   isScanning: boolean;
@@ -37,19 +37,20 @@ function useBLE(): BluetoothLowEnergyApi {
     setModelName,
   } = useBluetoothDeviceModuleStore();
   const bluetoothModule = BluetoothModule.getInstance();
+  const manager = bluetoothModule.getManager();
   const { handleLocationPermission, isLocationPermitted } = usePermission();
 
   const heartBeatTimer = useRef<NodeJS.Timeout | null>(null);
 
   const checkBluetooth = async () => {
     try {
-      const state = await bleManager.checkState();
+      const state = await manager.state();
       console.debug("Bluetooth state:", state);
       
-      if (state !== 'on') {
+      if (state !== State.PoweredOn) {
         if (Platform.OS === 'android') {
           try {
-            await bleManager.enableBluetooth();
+            await manager.enable();
             console.debug("Bluetooth enabled successfully");
           } catch (error) {
             console.error("Failed to enable Bluetooth:", error);
@@ -65,17 +66,17 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const sendHeartBeat = (deviceId: Peripheral["id"]) => {
+  const sendHeartBeat = (deviceId: string) => {
     if (heartBeatTimer.current) {
       clearTimeout(heartBeatTimer.current);
     }
     
     heartBeatTimer.current = setTimeout(() => {
-      bleManager.writeWithoutResponse(
+      manager.writeCharacteristicWithoutResponseForDevice(
         deviceId,
         bluetoothModule.DEVICE_SERVICE_UUID,
         bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
-        bluetoothModule.hexToByteArray("e0aa55")
+        bluetoothModule.hexToBase64("e0aa55")
       ).catch(error => {
         console.error("Heartbeat failed:", error);
       });
@@ -148,7 +149,7 @@ function useBLE(): BluetoothLowEnergyApi {
       console.debug("Starting scan for peripherals...");
       
       // Stop any ongoing scan first
-      await bleManager.stopScan().catch(() => {});
+      await manager.stopDeviceScan().catch(() => {});
       
       // Check Bluetooth state
       await checkBluetooth();
@@ -166,7 +167,17 @@ function useBLE(): BluetoothLowEnergyApi {
       console.debug("Service UUID:", bluetoothModule.DEVICE_SERVICE_UUID);
       
       // Start scanning - use empty array to find all devices
-      await bleManager.scan([], 10, false, {});
+      await manager.startDeviceScan([], null, (error, device) => {
+         if (error) {
+        console.log("Scan error:", error);
+        setIsScanning(false);
+        return;
+      }
+
+      if (device && device.id) {
+        addDevice(device);
+      } 
+      });
       console.debug("Scan started successfully");
       
     } catch (error:any) {
@@ -193,7 +204,7 @@ function useBLE(): BluetoothLowEnergyApi {
 
   const stopScanPeripherals = async (): Promise<void> => {
     try {
-      await bleManager.stopScan();
+      await manager.stopDeviceScan();
       setIsScanning(false);
       console.debug("Scan stopped");
     } catch (error) {
@@ -202,7 +213,7 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
-  const connectToDevice = async (device: Peripheral): Promise<void> => {
+  const connectToDevice = async (device: Device): Promise<void> => {
     console.debug("Attempting to connect to device:", device.name, device.id);
     
     try {
@@ -210,7 +221,7 @@ function useBLE(): BluetoothLowEnergyApi {
       await stopScanPeripherals();
       
       // Check if already connected
-      const isConnected = await bleManager.isPeripheralConnected(device.id, []);
+      const isConnected = await manager.isDeviceConnected(device.id);
       if (isConnected) {
         console.debug("Device already connected");
         setConnectedDevice(device);
@@ -218,12 +229,12 @@ function useBLE(): BluetoothLowEnergyApi {
       }
 
       console.debug("Connecting to device...");
-      await bleManager.connect(device.id);
+      await manager.connectToDevice(device.id);
       console.debug("Connected successfully");
 
       console.debug("Retrieving services...");
-      const services = await bleManager.retrieveServices(device.id);
-      console.debug("Services retrieved:", services.services?.map(s => s.uuid));
+      const services = await manager.discoverAllServicesAndCharacteristicsForDevice(device.id);
+      // console.debug("Services retrieved:", services.?.map(s => s.uuid));
 
       console.debug("Verifying password...");
       const passwordVerified = await bluetoothModule.verifyPassword(device.id);
@@ -245,7 +256,7 @@ function useBLE(): BluetoothLowEnergyApi {
       
       // Try to disconnect if there was an error
       try {
-        await bleManager.disconnect(device.id);
+        await manager.cancelDeviceConnection(device.id);
       } catch (disconnectError) {
         console.error("Error disconnecting after failed connection:", disconnectError);
       }
@@ -273,7 +284,7 @@ function useBLE(): BluetoothLowEnergyApi {
         await bluetoothModule.startStopDevice(connectedDevice.id, force);
         
         // Disconnect
-        await bleManager.disconnect(connectedDevice.id);
+        await manager.cancelDeviceConnection(connectedDevice.id);
         
         // Clear state
         setConnectedDevice(null);
@@ -290,7 +301,7 @@ function useBLE(): BluetoothLowEnergyApi {
   };
 
   // Event handlers
-  const handleOnDiscoverPeripheral = (peripheral: Peripheral) => {
+  const handleOnDiscoverPeripheral = (peripheral: Device) => {
     console.debug("Discovered peripheral:", {
       name: peripheral.name || "NO NAME",
       id: peripheral.id,
@@ -366,8 +377,8 @@ function useBLE(): BluetoothLowEnergyApi {
     
     try {
       const hexString = stringToHex(name);
-      const byteData = bluetoothModule.hexToByteArray("22" + hexString);
-      await bleManager.write(
+      const byteData = bluetoothModule.hexToBase64("22" + hexString);
+      await manager.writeCharacteristicWithoutResponseForDevice(
         connectedDevice.id,
         bluetoothModule.DEVICE_SERVICE_UUID,
         bluetoothModule.DEVICE_CHARACTERISTIC_UUID,
@@ -398,27 +409,28 @@ function useBLE(): BluetoothLowEnergyApi {
       
       try {
         // Start BLE Manager
-        await bleManager.start({ showAlert: false });
+        // await manager.({ showAlert: false });
         console.debug("BleManager started successfully");
         
         if (!mounted) return;
+        
 
         // Set up event listeners
-        const listeners = [
-          bleManager.onDiscoverPeripheral(handleOnDiscoverPeripheral),
-          bleManager.onConnectPeripheral(handleOnConnectPeripheral),
-          bleManager.onStopScan(handleOnStopScan),
-          bleManager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
-          bleManager.onDidUpdateValueForCharacteristic(handleOnDidUpdateValueForCharacteristic),
-        ];
+        // const listeners = [
+        //   manager.(handleOnDiscoverPeripheral),
+        //   manager.on(handleOnConnectPeripheral),
+        //   manager.(handleOnStopScan),
+        //   manager.onDisconnectPeripheral(handleOnDisconnectPeripheral),
+        //   manager.onDidUpdateValueForCharacteristic(handleOnDidUpdateValueForCharacteristic),
+        // ];
 
-        console.debug("BLE event listeners set up");
+        // console.debug("BLE event listeners set up");
 
         // Cleanup function
-        return () => {
-          console.debug("Cleaning up BLE listeners...");
-          listeners.forEach(listener => listener.remove());
-        };
+        // return () => {
+        //   console.debug("Cleaning up BLE listeners...");
+        //   listeners.forEach(listener => listener.remove());
+        // };
         
       } catch (error) {
         console.error("Failed to initialize BLE Manager:", error);
@@ -436,9 +448,9 @@ function useBLE(): BluetoothLowEnergyApi {
       }
       
       // Execute cleanup if available
-      if (cleanup instanceof Promise) {
-        cleanup.then(cleanupFn => cleanupFn?.());
-      }
+      // if (cleanup instanceof Promise) {
+      //   cleanup.then(cleanupFn => cleanupFn?.());
+      // }
     };
   }, []);
 

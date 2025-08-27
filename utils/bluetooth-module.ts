@@ -1,11 +1,13 @@
-import type { Peripheral } from "react-native-ble-manager";
-import BleManager from "react-native-ble-manager";
+import { BleManager } from 'react-native-ble-plx'
 
 class BluetoothModule {
   private static instance: BluetoothModule | null = null;
+   private manager: BleManager
 
   // Private constructor to prevent instantiation from outside
-  private constructor() {}
+  private constructor() {
+    this.manager = new BleManager()
+  }
   private static _DEVICE_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
   private static _DEVICE_CHARACTERISTIC_UUID =
     "0000fff6-0000-1000-8000-00805f9b34fb";
@@ -19,6 +21,10 @@ class BluetoothModule {
       this.instance = new BluetoothModule();
     }
     return this.instance;
+  }
+
+  getManager() {
+    return this.manager
   }
 
   get DEVICE_SERVICE_UUID() {
@@ -42,14 +48,14 @@ class BluetoothModule {
    * @param device
    * @returns true if the password is correct, false otherwise
    */
-  async verifyPassword(peripheralId: Peripheral["id"]) {
-    const byteArray = this.hexToByteArray(BluetoothModule.DEVICE_PASSWORD);
+  async verifyPassword(peripheralId: string) {
+    const value = this.hexToBase64(BluetoothModule.DEVICE_PASSWORD);
     try {
-      await BleManager.write(
+      await this.manager.writeCharacteristicWithResponseForDevice(
         peripheralId,
         BluetoothModule._DEVICE_SERVICE_UUID,
         BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
-        byteArray
+        value
       );
 
       return true;
@@ -71,14 +77,21 @@ class BluetoothModule {
     return byteArray;
   }
 
-  async startStopDevice(peripheralId: Peripheral["id"], isDeviceOn: boolean) {
-    const byteArray = this.hexToByteArray(!isDeviceOn ? "2d0000" : "2d0101");
+  hexToBase64(hex: string): string {
+       if (hex.length % 2 !== 0) {
+      throw new Error("Invalid hexadecimal string");
+    }
+    return Buffer.from(hex, "hex").toString("base64");
+  }
+
+  async startStopDevice(peripheralId: string, isDeviceOn: boolean) {
+    const value = this.hexToBase64(!isDeviceOn ? "2d0000" : "2d0101");
     try {
-      await BleManager.write(
+      await this.manager.writeCharacteristicWithResponseForDevice(
         peripheralId,
         BluetoothModule._DEVICE_SERVICE_UUID,
         BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
-        byteArray
+        value
       );
 
       return true;
@@ -109,7 +122,7 @@ class BluetoothModule {
   async enableBluetooth() {
     try {
       console.debug("[enableBluetooth] enabling bluetooth");
-      await BleManager.enableBluetooth();
+      await this.manager.enable();
       console.debug("[enableBluetooth] enabled bluetooth");
     } catch (error) {
       console.error("[enableBluetooth] thrown", error);
@@ -120,13 +133,13 @@ class BluetoothModule {
     await this.enableBluetooth();
   }
 
-  async adjustIntensity(peripheralId: Peripheral["id"], intensity: number) {
+  async adjustIntensity(peripheralId: string, intensity: number) {
     try {
       const hexIntensity = intensity.toString(16);
-      const byteArray = this.encodeHexToByteArray(
+      const byteArray = this.hexToBase64(
         `2A0102010101030000173b3E00${hexIntensity.padStart(2, "0")}000A0064`
       );
-      await BleManager.write(
+      await this.manager.writeCharacteristicWithResponseForDevice(
         peripheralId,
         this.DEVICE_SERVICE_UUID,
         this.DEVICE_CHARACTERISTIC_UUID,
@@ -138,24 +151,14 @@ class BluetoothModule {
   }
 
   async setModelNumber(peripheralId: string) {
-    await BleManager.startNotification(
-      peripheralId,
-      BluetoothModule._DEVICE_SERVICE_UUID,
-      BluetoothModule._DEVICE_CHARACTERISTIC_UUID
-    );
 
-    await BleManager.write(
+    await this.manager.writeCharacteristicWithResponseForDevice(
       peripheralId,
       BluetoothModule._DEVICE_SERVICE_UUID,
       BluetoothModule._DEVICE_CHARACTERISTIC_UUID,
-      this.encodeHexToByteArray("45")
+      this.hexToBase64("45")
     );
 
-    await BleManager.stopNotification(
-      peripheralId,
-      BluetoothModule._DEVICE_SERVICE_UUID,
-      BluetoothModule._DEVICE_CHARACTERISTIC_UUID
-    );
   }
 
   //   promptToEnableBluetooth(bleManager: BleManager) {
