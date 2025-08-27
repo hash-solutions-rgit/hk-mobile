@@ -1,14 +1,15 @@
-import type { Peripheral } from "react-native-ble-manager";
+
+import { Device } from "react-native-ble-plx";
 import type { StateCreator } from "zustand";
 
 interface BluetoothDeviceModuleSlice {
-  allDevices: Map<string, Peripheral>;
-  connectedDevice: Peripheral | null;
+  allDevices: Map<string, Device>;
+  connectedDevice: Device | null;
   isScanning: boolean;
   setIsScanning: (isScanning: boolean) => void;
-  setAllDevices: (allDevices: Map<string, Peripheral>) => void;
-  setConnectedDevice: (connectedDevice: Peripheral | null) => void;
-  addDevice: (device: Peripheral) => void;
+  setAllDevices: (allDevices: Map<string, Device>) => void;
+  setConnectedDevice: (connectedDevice: Device | null) => void;
+  addDevice: (device: Device) => void;
   modelName: string;
   setModelName: (name: string) => void;
 }
@@ -16,7 +17,7 @@ interface BluetoothDeviceModuleSlice {
 export const bluetoothDeviceModuleSlice: StateCreator<
   BluetoothDeviceModuleSlice
 > = (set) => ({
-  allDevices: new Map<string, Peripheral>(),
+  allDevices: new Map<string, Device>(),
   connectedDevice: null,
   isScanning: false,
   setIsScanning(isScanning) {
@@ -25,7 +26,7 @@ export const bluetoothDeviceModuleSlice: StateCreator<
   setAllDevices(allDevices) {
     set({ allDevices });
   },
-  addDevice(device: Peripheral) {
+  addDevice(device: Device) {
     set((state) => ({
       allDevices: new Map(state.allDevices.set(device.id, device)),
     }));

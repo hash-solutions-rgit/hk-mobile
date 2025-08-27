@@ -1,9 +1,10 @@
-import { Peripheral } from "react-native-ble-manager";
+
+import { Device } from "react-native-ble-plx";
 import { StateCreator } from "zustand";
 
 interface DeviceSlice {
-  device: Peripheral | null;
-  setDevice: (device: Peripheral) => void;
+  device: Device | null;
+  setDevice: (device: Device) => void;
 
   isDeviceOn: boolean;
   setIsDeviceOn: (isDeviceOn: boolean) => void;
